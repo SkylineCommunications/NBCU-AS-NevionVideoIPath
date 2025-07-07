@@ -29,9 +29,9 @@
 		private readonly Time startTimePicker = new Time(TimeSpan.FromMinutes(30)) { IsVisible = false, HasSeconds = false, Minimum = TimeSpan.FromMinutes(5), Maximum = TimeSpan.FromHours(24), ClipValueToRange = true };
 
 		private readonly Label endLabel = new Label("End");
-		private readonly RadioButtonList endRadioButtonList = new RadioButtonList(new[] { "Never", "In x from Start", "Date/Time" }, "Never");
+		private readonly RadioButtonList endRadioButtonList = new RadioButtonList(new[] { "Never", "In x from Start", "Date/Time" }, "In x from Start");
 		private readonly DateTimePicker endDateTimePicker = new DateTimePicker(DateTime.Now.AddHours(1)) { IsVisible = false };
-		private readonly Time endTimePicker = new Time(TimeSpan.FromMinutes(30)) { IsVisible = false, HasSeconds = false, Minimum = TimeSpan.FromMinutes(5), Maximum = TimeSpan.FromHours(24) };
+		private readonly Time endTimePicker = new Time(new TimeSpan(4,0,0)) { IsVisible = true, HasSeconds = false, Minimum = TimeSpan.FromMinutes(5), Maximum = TimeSpan.FromHours(24) };
 
 		private readonly Label routeLabel = new Label("Route");
 		private readonly RadioButtonList routeRadioButtonList = new RadioButtonList(new[] { "Point-to-Point", "Point-to-Multipoint" }, "Point-to-Multipoint");
@@ -43,7 +43,7 @@
 
 		public ScheduleDialog(IEngine engine) : base(engine)
 		{
-			Title = "Schedule Services";
+			Title = "Connect Services";
 
 			nevionVideoIPathElement = engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
 			if (nevionVideoIPathElement == null)
@@ -168,7 +168,9 @@
 			}
 		}
 
-		public Button ConnectButton { get; private set; } = new Button("Connect");
+		public Button ConnectButton { get; private set; } = new Button("Connect") {Style = ButtonStyle.CallToAction, Width = 120 };
+
+		public Button CancelButton { get; private set; } = new Button("Cancel") {Width = 120 };
 
 		public void SetInput(string sourceName, List<string> destinationNames, string profile)
 		{
@@ -300,7 +302,8 @@
 
 			AddWidget(new WhiteSpace(), ++row, 0);
 
-			AddWidget(ConnectButton, ++row, 0);
+			AddWidget(CancelButton, ++row, 0);
+			AddWidget(ConnectButton, row, 1, HorizontalAlignment.Right);
 		}
 	}
 }
