@@ -291,7 +291,7 @@ public class SourceRow
 			return false;
 		}
 
-		if (String.IsNullOrEmpty(DescriptorLabel))
+		if (String.IsNullOrEmpty(DescriptorLabel) && String.IsNullOrEmpty(FDescriptorLabel))
 		{
 			return false;
 		}
@@ -311,6 +311,7 @@ public class SourceRow
 
 	public GQIRow ToGqiRow()
 	{
+		var descriptorLabel = String.IsNullOrEmpty(DescriptorLabel) ? FDescriptorLabel : DescriptorLabel;
 		return new GQIRow(
 			new[]
 			{
@@ -318,7 +319,7 @@ public class SourceRow
 				new GQICell { Value = Id },
 				new GQICell { Value = Description },
 				new GQICell { Value = String.Join(",", Tags) },
-				new GQICell { Value = DescriptorLabel },
+				new GQICell { Value = descriptorLabel },
 				new GQICell { Value = FDescriptorLabel },
 				new GQICell { Value = IsSelected },
 			});

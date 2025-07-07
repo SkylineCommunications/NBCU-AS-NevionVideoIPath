@@ -278,7 +278,7 @@ public class DestinationRow
 			return false;
 		}
 
-		if (String.IsNullOrEmpty(DescriptorLabel))
+		if (String.IsNullOrEmpty(DescriptorLabel) && String.IsNullOrEmpty(FDescriptorLabel))
 		{
 			return false;
 		}
