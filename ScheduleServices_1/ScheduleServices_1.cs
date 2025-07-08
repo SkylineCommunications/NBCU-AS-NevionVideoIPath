@@ -150,6 +150,7 @@ namespace ScheduleServices_1
 			scheduleDialog = new ScheduleDialog(engine);
 			scheduleDialog.SetInput(sourceName, destinationNames, profile);
 			scheduleDialog.ConnectButton.Pressed += (s, o) => engine.ExitSuccess(String.Empty);
+			scheduleDialog.CancelButton.Pressed += (s, o) => engine.ExitSuccess(String.Empty);
 		}
 
 		private static bool TryGetInputValue(string input, out List<string> labels)

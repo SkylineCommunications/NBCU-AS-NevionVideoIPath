@@ -334,7 +334,7 @@ public class DestinationByTagRow
 			return false;
 		}
 
-		if (String.IsNullOrEmpty(DescriptorLabel))
+		if (String.IsNullOrEmpty(DescriptorLabel) && String.IsNullOrEmpty(FDescriptorLabel))
 		{
 			return false;
 		}
@@ -354,10 +354,11 @@ public class DestinationByTagRow
 
 	public GQIRow ToGqiRow()
 	{
+		var descriptorLabel = !String.IsNullOrWhiteSpace(DescriptorLabel) ? DescriptorLabel : FDescriptorLabel;
 		return new GQIRow(
 			new[]
 			{
-				new GQICell { Value = DescriptorLabel },
+				new GQICell { Value = descriptorLabel },
 				new GQICell { Value = ConnectedSource.Trim() },
 				new GQICell { Value = String.Join(",", Tags) },
 				new GQICell { Value = Id },
