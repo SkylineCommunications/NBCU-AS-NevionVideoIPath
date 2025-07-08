@@ -31,7 +31,7 @@
 		private readonly Label endLabel = new Label("End");
 		private readonly RadioButtonList endRadioButtonList = new RadioButtonList(new[] { "Never", "In x from Start", "Date/Time" }, "In x from Start");
 		private readonly DateTimePicker endDateTimePicker = new DateTimePicker(DateTime.Now.AddHours(1)) { IsVisible = false };
-		private readonly Time endTimePicker = new Time(new TimeSpan(4,0,0)) { IsVisible = true, HasSeconds = false, Minimum = TimeSpan.FromMinutes(5), Maximum = TimeSpan.FromHours(24) };
+		private readonly Time endTimePicker = new Time(TimeSpan.FromHours(4)) { IsVisible = true, HasSeconds = false, Minimum = TimeSpan.FromMinutes(5), Maximum = TimeSpan.FromHours(24) };
 
 		private readonly Label routeLabel = new Label("Route");
 		private readonly RadioButtonList routeRadioButtonList = new RadioButtonList(new[] { "Point-to-Point", "Point-to-Multipoint" }, "Point-to-Multipoint");

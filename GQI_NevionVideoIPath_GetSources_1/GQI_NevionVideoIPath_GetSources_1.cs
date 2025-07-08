@@ -291,7 +291,7 @@ public class SourceRow
 			return false;
 		}
 
-		if (String.IsNullOrEmpty(DescriptorLabel) && String.IsNullOrEmpty(FDescriptorLabel))
+		if (String.IsNullOrWhiteSpace(DescriptorLabel) && String.IsNullOrWhiteSpace(FDescriptorLabel))
 		{
 			return false;
 		}
@@ -311,7 +311,7 @@ public class SourceRow
 
 	public GQIRow ToGqiRow()
 	{
-		var descriptorLabel = String.IsNullOrEmpty(DescriptorLabel) ? FDescriptorLabel : DescriptorLabel;
+		var descriptorLabel = String.IsNullOrWhiteSpace(DescriptorLabel) ? FDescriptorLabel : DescriptorLabel;
 		return new GQIRow(
 			new[]
 			{
