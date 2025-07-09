@@ -53,6 +53,11 @@
     <PackageReference Include="Skyline.DataMiner.Dev.Automation">
       <Version>10.3.9</Version>
     </PackageReference>
+    <PackageReference Include="Skyline.DataMiner.Utils.SecureCoding.Analyzers">
+      <Version>2.0.4</Version>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <PackageReference Include="StyleCop.Analyzers">
       <Version>1.1.118</Version>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

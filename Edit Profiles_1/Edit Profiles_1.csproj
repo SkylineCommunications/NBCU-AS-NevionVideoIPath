@@ -5,16 +5,15 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{FDE62181-0D66-459D-B17B-260925CAB08B}</ProjectGuid>
+    <ProjectGuid>{D9A4842A-8569-45AB-AD3F-84793340B307}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>GQI_NevionVideoIPath_GetDestinations_1</RootNamespace>
-    <AssemblyName>GQI_NevionVideoIPath_GetDestinations_1</AssemblyName>
+    <RootNamespace>Edit_Profiles_1</RootNamespace>
+    <AssemblyName>Edit Profiles_1</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <LangVersion>
     </LangVersion>
-    <TargetFrameworkProfile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -25,7 +24,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CodeAnalysisRuleSet>..\Internal\Code Analysis\qaction-debug.ruleset</CodeAnalysisRuleSet>
-    <DocumentationFile>bin\Debug\GQI_NevionVideoIPath_GetDestinations_1.xml</DocumentationFile>
+    <DocumentationFile>bin\Debug\Edit Profiles_1.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -35,7 +34,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CodeAnalysisRuleSet>..\Internal\Code Analysis\qaction-release.ruleset</CodeAnalysisRuleSet>
-    <DocumentationFile>bin\Release\GQI_NevionVideoIPath_GetDestinations_1.xml</DocumentationFile>
+    <DocumentationFile>bin\Release\Edit Profiles_1.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
     <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
@@ -44,14 +43,31 @@
     <Reference Include="System" />
     <AdditionalFiles Include="stylecop.json" />
     <Content Include=".editorconfig" />
+    <Reference Include="System.Numerics" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.Transactions" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="ProfileDialog.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="GQI_NevionVideoIPath_GetDestinations_1.cs" />
+    <Compile Include="Edit Profiles_1.cs" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Skyline.DataMiner.Dev.Automation">
-      <Version>10.3.9</Version>
+    <None Include="app.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Skyline.DataMiner.Core.DataMinerSystem.Automation">
+      <Version>1.1.3.2</Version>
+    </PackageReference>
+    <PackageReference Include="Skyline.DataMiner.Utils.DOM">
+      <Version>10.5.2.1</Version>
+    </PackageReference>
+    <PackageReference Include="Skyline.DataMiner.Utils.InteractiveAutomationScriptToolkit">
+      <Version>10.5.4.2</Version>
+    </PackageReference>
+    <PackageReference Include="Skyline.DataMiner.Utils.SecureCoding">
+      <Version>2.0.4</Version>
     </PackageReference>
     <PackageReference Include="Skyline.DataMiner.Utils.SecureCoding.Analyzers">
       <Version>2.0.4</Version>
@@ -67,11 +83,11 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties DisLinkedXmlFile="..\GQI_NevionVideoIPath_GetDestinations.xml" DisProjectType="automationScriptProject" DisLinkId="1" />
+      <UserProperties DisLinkId="1" DisProjectType="automationScriptProject" DisLinkedXmlFile="..\Edit Profiles.xml" />
     </VisualStudio>
   </ProjectExtensions>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
-       Other similar extension points exist, see Microsoft.Common.targets.
+	   Other similar extension points exist, see Microsoft.Common.targets.
   <Target Name="BeforeBuild">
   </Target>
   <Target Name="AfterBuild">
