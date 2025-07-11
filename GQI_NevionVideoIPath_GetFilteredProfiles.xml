@@ -1,9 +1,9 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <DMSScript options="272" xmlns="http://www.skyline.be/automation">
-	<Name>GQI_NevionVideoIPath_GetDestinationsByTags</Name>
+	<Name>GQI_NevionVideoIPath_GetFilteredProfiles</Name>
 	<Description></Description>
 	<Type>Automation</Type>
-	<Author>SKYLINE2\MiguelGD</Author>
+	<Author>SKYLINE2\CarlosMT</Author>
 	<CheckSets>FALSE</CheckSets>
 	<Folder>Nevion VideoIPath/GQI</Folder>
 
@@ -18,9 +18,10 @@
 
 	<Script>
 		<Exe id="1" type="csharp">
-			<Value><![CDATA[[Project:GQI_NevionVideoIPath_GetDestinationsByTags_1]]]></Value>
+			<Value><![CDATA[[Project:GQI_NevionVideoIPath_GetFilteredProfiles_1]]]></Value>
+			<!--<Param type="debug">true</Param>-->
 			<Param type="preCompile">true</Param>
-			<Param type="libraryName">GQI_NevionVideoIPath_GetDestinationsByTags</Param>
+			<Param type="libraryName">GQI_NevionVideoIPath_GetFilteredProfiles</Param>
 			<Message></Message>
 		</Exe>
 	</Script>
