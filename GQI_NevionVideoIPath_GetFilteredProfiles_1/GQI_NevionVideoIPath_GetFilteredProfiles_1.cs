@@ -141,7 +141,7 @@ public class GetFilteredProfiles : IGQIDataSource, IGQIOnInit, IGQIInputArgument
 
 			var tags = Convert.ToString(profileRow[3]);
 
-			if (tags.IsNullOrEmpty())
+			if (tags.IsNullOrEmpty() && !matchingTagsList.Contains("ALL"))
 			{
 				continue;
 			}
