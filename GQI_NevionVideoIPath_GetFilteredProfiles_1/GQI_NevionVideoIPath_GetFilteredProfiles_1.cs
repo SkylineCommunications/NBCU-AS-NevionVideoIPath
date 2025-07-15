@@ -75,9 +75,9 @@ public class GetFilteredProfiles : IGQIDataSource, IGQIOnInit, IGQIInputArgument
 			{
 				var username = instance.GetFieldValue<string>(Lca_Access.Sections.BasicInformation.Id, Lca_Access.Sections.BasicInformation.Username)?.Value;
 				var group = instance.GetFieldValue<string>(Lca_Access.Sections.BasicInformation.Id, Lca_Access.Sections.BasicInformation.Group)?.Value;
-				var profiles = instance.GetFieldValue<string>(Lca_Access.Sections.NevionControl.Id, Lca_Access.Sections.NevionControl.Profiles)?.Value;
+				var tags = instance.GetFieldValue<string>(Lca_Access.Sections.NevionControl.Id, Lca_Access.Sections.NevionControl.Profiles)?.Value;
 
-				valuesList.Add(new DomInstanceValues { Username = username, Group = group, Profiles = profiles });
+				valuesList.Add(new DomInstanceValues { Username = username, Group = group, Tags = tags });
 			}
 
 			if (valuesList.Count == 0)
@@ -101,8 +101,8 @@ public class GetFilteredProfiles : IGQIDataSource, IGQIOnInit, IGQIInputArgument
 				var matchingByUsername = valuesList.FirstOrDefault(instance => instance.Username == systemUserName);
 				if (matchingByUsername != null)
 				{
-					var matchingProfilesList = matchingByUsername.Profiles.Split(',').ToList();
-					return AddRows(nevionResponse, matchingProfilesList);
+					var matchingTagList = matchingByUsername.Tags.Split(',').ToList();
+					return AddRows(nevionResponse, matchingTagList);
 				}
 
 				// Group Data
@@ -112,8 +112,8 @@ public class GetFilteredProfiles : IGQIDataSource, IGQIOnInit, IGQIInputArgument
 
 				if (groupNames.Count > 0)
 				{
-					var matchingProfilesByGroup = MatchingProfilesByGroup(valuesList, groupNames);
-					return AddRows(nevionResponse, matchingProfilesByGroup);
+					var matchingTagsByGroup = MatchingTagsByGroup(valuesList, groupNames);
+					return AddRows(nevionResponse, matchingTagsByGroup);
 				}
 			}
 
@@ -125,7 +125,7 @@ public class GetFilteredProfiles : IGQIDataSource, IGQIOnInit, IGQIInputArgument
 		}
 	}
 
-	private List<GQIRow> AddRows(LiteElementInfoEvent nevionResponse, List<string> matchingProfilesList)
+	private List<GQIRow> AddRows(LiteElementInfoEvent nevionResponse, List<string> matchingTagsList)
 	{
 		if (nevionResponse.State != ElementState.Active)
 		{
@@ -149,7 +149,7 @@ public class GetFilteredProfiles : IGQIDataSource, IGQIOnInit, IGQIInputArgument
 			var profileId = Convert.ToString(profileRow[0]);
 			var profileName = Convert.ToString(profileRow[1]);
 
-			if (matchingProfilesList.Contains("ALL"))
+			if (matchingTagsList.Contains("ALL"))
 			{
 				var cells = new[]
 				{
@@ -164,7 +164,9 @@ public class GetFilteredProfiles : IGQIDataSource, IGQIOnInit, IGQIInputArgument
 				continue;
 			}
 
-			if(matchingProfilesList.Contains(profileName))
+			var tagList = tags.Split(',');
+			var hasMatch = tagList.Any(tag => matchingTagsList.Contains(tag.Trim()));
+			if (hasMatch)
 			{
 				var cells = new[]
 				{
@@ -180,23 +182,23 @@ public class GetFilteredProfiles : IGQIDataSource, IGQIOnInit, IGQIInputArgument
 		return rows;
 	}
 
-	private List<string> MatchingProfilesByGroup(List<DomInstanceValues> valuesList, List<string> groupNames)
+	private List<string> MatchingTagsByGroup(List<DomInstanceValues> valuesList, List<string> groupNames)
 	{
-		var profilesList = new List<string>();
+		var tagList = new List<string>();
 		foreach (var group in groupNames)
 		{
 			var matchingGroup = valuesList.FirstOrDefault(x => x.Group == group);
 			if (matchingGroup != null)
 			{
-				if (!matchingGroup.Profiles.IsNullOrEmpty())
+				if (!matchingGroup.Tags.IsNullOrEmpty())
 				{
-					var domProfiles = matchingGroup.Profiles.Split(',').ToList();
-					profilesList.AddRange(domProfiles);
+					var domTags = matchingGroup.Tags.Split(',').ToList();
+					tagList.AddRange(domTags);
 				}
 			}
 		}
 
-		return profilesList.Distinct().ToList();
+		return tagList.Distinct().ToList();
 	}
 
 	public class DomInstanceValues
@@ -205,6 +207,6 @@ public class GetFilteredProfiles : IGQIDataSource, IGQIOnInit, IGQIInputArgument
 
 		public string Group { get; set; }
 
-		public string Profiles { get; set; }
+		public string Tags { get; set; }
 	}
 }
