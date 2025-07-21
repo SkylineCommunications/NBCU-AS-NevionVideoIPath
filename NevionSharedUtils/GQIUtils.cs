@@ -1,8 +1,16 @@
 ﻿namespace NevionSharedUtils
 {
+	using DomIds;
+	using System.Collections.Generic;
+
 	using Skyline.DataMiner.Analytics.GenericInterface;
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Helper;
 	using Skyline.DataMiner.Net.Messages;
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Net.Sections;
+	using System;
+	using System.Linq;
 
 	public class GQIUtils
 	{
@@ -59,8 +67,65 @@
 				for (int index2 = 0; index2 < length2; ++index2)
 					objArray[index2][index1] = arrayValue[index2].IsEmpty ? (object)null : arrayValue[index2].ArrayValue[0].InteropValue;
 			}
-
 			return objArray;
+		}
+
+		public static List<DomInstanceValues> GetDOMTags(DomHelper domHelper)
+		{
+			var instances = domHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(Lca_Access.Definitions.Nevion_Control.Id));
+			var valuesList = new List<DomInstanceValues>();
+			foreach (var instance in instances)
+			{
+				var username = instance.GetFieldValue<string>(Lca_Access.Sections.BasicInformation.Id, Lca_Access.Sections.BasicInformation.Username)?.Value;
+				var group = instance.GetFieldValue<string>(Lca_Access.Sections.BasicInformation.Id, Lca_Access.Sections.BasicInformation.Group)?.Value;
+				var tags = instance.GetFieldValue<string>(Lca_Access.Sections.NevionControl.Id, Lca_Access.Sections.NevionControl.Profiles)?.Value;
+
+				valuesList.Add(new DomInstanceValues { Username = username, Group = group, Tags = tags });
+			}
+
+			return valuesList;
+		}
+
+		public static LiteElementInfoEvent GetNevionElement(GQIDMS _dms, string nevionElementId)
+		{
+			var sElementId = nevionElementId.Split('/');
+			var nevionElementRequest = new GetLiteElementInfo
+			{
+				DataMinerID = Convert.ToInt32(sElementId[0]),
+				ElementID = Convert.ToInt32(sElementId[1]),
+			};
+
+			var nevionResponse = _dms.SendMessage(nevionElementRequest) as LiteElementInfoEvent;
+
+			return nevionResponse;
+		}
+
+		public static List<string> MatchingTagsByGroup(List<DomInstanceValues> valuesList, List<string> groupNames)
+		{
+			var tagList = new List<string>();
+			foreach (var group in groupNames)
+			{
+				var matchingGroup = valuesList.FirstOrDefault(x => x.Group == group);
+				if (matchingGroup != null)
+				{
+					if (!matchingGroup.Tags.IsNullOrEmpty())
+					{
+						var domTags = matchingGroup.Tags.Split(',').ToList();
+						tagList.AddRange(domTags);
+					}
+				}
+			}
+
+			return tagList.Distinct().ToList();
+		}
+
+		public class DomInstanceValues
+		{
+			public string Username { get; set; }
+
+			public string Group { get; set; }
+
+			public string Tags { get; set; }
 		}
 	}
 }

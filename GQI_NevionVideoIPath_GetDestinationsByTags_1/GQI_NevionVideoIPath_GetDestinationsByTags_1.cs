@@ -1,7 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using NevionSharedUtils;
+
 using Skyline.DataMiner.Analytics.GenericInterface;
+using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 using Skyline.DataMiner.Net.Messages;
 
 [GQIMetaData(Name = "Nevion VideoIPath Get Destinations By Tags")]
@@ -17,6 +21,8 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 
 	private int dataminerId;
 	private int elementId;
+
+	private DomHelper domHelper;
 
 	public GQIColumn[] GetColumns()
 	{
@@ -53,6 +59,41 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		}
 
 		List<GQIRow> rows;
+
+		var valuesList = GQIUtils.GetDOMTags(domHelper);
+
+		if (valuesList.Count == 0)
+		{
+			return new GQIPage(new GQIRow[0])
+			{
+				HasNextPage = false,
+			};
+		}
+
+		var responses = dms.SendMessages(new GetUserFullNameMessage(), new GetInfoMessage(InfoType.SecurityInfo));
+		var systemUserName = responses?.OfType<GetUserFullNameResponseMessage>().FirstOrDefault()?.User.Trim();
+		var matchingByUsername = valuesList.FirstOrDefault(instance => instance.Username == systemUserName);
+
+		var matchingTagList = new List<string>();
+		if (matchingByUsername != null)
+		{
+			matchingTagList = matchingByUsername.Tags.Split(',').ToList();
+		}
+
+		// Group Data
+		var securityResponse = responses?.OfType<GetUserInfoResponseMessage>().FirstOrDefault();
+
+		var groupNames = securityResponse.FindGroupNamesByUserName(systemUserName).ToList();
+		if (!matchingTagList.Any() && groupNames.Count > 0)
+		{
+			matchingTagList = GQIUtils.MatchingTagsByGroup(valuesList, groupNames);
+		}
+
+		if (matchingTagList.Count == 0)
+		{
+			return default;
+		}
+
 		if (!String.IsNullOrEmpty(tag))
 		{
 			rows = GetDestinationByTagRows(tag);
@@ -64,7 +105,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		}
 		else
 		{
-			rows = GetDestinationByTagRows();
+			rows = GetDestinationByTagRows(matchingTagList.ToArray());
 		}
 
 		return new GQIPage(rows.ToArray())
@@ -76,6 +117,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 	public OnInitOutputArgs OnInit(OnInitInputArgs args)
 	{
 		dms = args.DMS;
+		domHelper = new DomHelper(dms.SendMessages, DomIds.Lca_Access.ModuleId);
 		GetNevionVideoIPathElement();
 
 		return new OnInitOutputArgs();
@@ -344,7 +386,7 @@ public class DestinationByTagRow
 
 	public bool MatchesTagFilter(params string[] filter)
 	{
-		if (filter == null || !filter.Any())
+		if (filter == null || !filter.Any() || filter.Contains("ALL"))
 		{
 			return true;
 		}
