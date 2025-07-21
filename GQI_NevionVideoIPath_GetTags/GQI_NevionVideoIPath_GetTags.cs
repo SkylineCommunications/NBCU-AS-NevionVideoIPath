@@ -131,7 +131,7 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 
 				if (tags.Any())
 				{
-					tagsList.AddRange(tags);
+					tagsList.AddRange(tags.Select(x => x.Trim()));
 				}
 			}
 		}
@@ -172,11 +172,11 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 		var rows = new List<GQIRow>();
 		if (matchingTagsList.Contains("ALL"))
 		{
-			foreach (var tag in tags)
+			foreach (var tag in tags.Distinct())
 			{
 				var cells = new[]
 				{
-					new GQICell { Value = tag }, // Tags
+					new GQICell { Value = tag.Trim() }, // Tags
 				};
 
 				var row = new GQIRow(cells);
@@ -190,11 +190,11 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 		var matchingTags = tags.Where(tag => matchingTagsList.Contains(tag.Trim()));
 		if (matchingTags.Any())
 		{
-			foreach (var tag in matchingTags)
+			foreach (var tag in matchingTags.Distinct())
 			{
 				var cells = new[]
 				{
-					new GQICell { Value = tag }, // Tags
+					new GQICell { Value = tag.Trim() }, // Tags
 				};
 
 				var row = new GQIRow(cells);
