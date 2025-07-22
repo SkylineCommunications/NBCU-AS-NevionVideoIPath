@@ -2,16 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-using DomIds;
-
 using NevionSharedUtils;
 
 using Skyline.DataMiner.Analytics.GenericInterface;
 using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 using Skyline.DataMiner.Net.Helper;
 using Skyline.DataMiner.Net.Messages;
-using Skyline.DataMiner.Net.Messages.SLDataGateway;
-using Skyline.DataMiner.Net.Sections;
 
 [GQIMetaData(Name = "Nevion VideoIPath Get Tags")]
 public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInputArguments
@@ -22,12 +18,15 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 	private GQIStringArgument nevionElementNameArgument = new GQIStringArgument("Element Name") { IsRequired = false };
 	private string elementName;
 
+	private IGQILogger _logger;
+
 	private GQIDMS _dms;
 	private DomHelper domHelper;
 
 	public OnInitOutputArgs OnInit(OnInitInputArgs args)
 	{
 		_dms = args.DMS;
+		_logger = args.Logger;
 		domHelper = new DomHelper(_dms.SendMessages, DomIds.Lca_Access.ModuleId);
 		return new OnInitOutputArgs();
 	}
@@ -70,8 +69,7 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 
 	private List<GQIRow> GetRows()
 	{
-		var valuesList = GetDomInstanceData();
-
+		var valuesList = GQIUtils.GetDOMTags(domHelper, type);
 		if (valuesList.Count == 0)
 		{
 			return new List<GQIRow>();
@@ -93,9 +91,10 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 		var responses = _dms.SendMessages(new GetUserFullNameMessage(), new GetInfoMessage(InfoType.SecurityInfo));
 		var systemUserName = responses?.OfType<GetUserFullNameResponseMessage>().FirstOrDefault()?.User.Trim();
 		var matchingByUsername = valuesList.FirstOrDefault(instance => instance.Username == systemUserName);
+
 		if (matchingByUsername != null)
 		{
-			var matchingTagList = matchingByUsername.Tags.Split(',').ToList();
+			var matchingTagList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new List<string>() : matchingByUsername.Tags.Split(',').ToList();
 			return AddRows(nevionResponse, matchingTagList);
 		}
 
@@ -104,7 +103,7 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 
 		var groupNames = securityResponse.FindGroupNamesByUserName(systemUserName).ToList();
 
-		if (groupNames.Count > 0)
+		if (matchingByUsername == null && groupNames.Count > 0)
 		{
 			var matchingTagsByGroup = MatchingTagsByGroup(valuesList, groupNames);
 			return AddRows(nevionResponse, matchingTagsByGroup);
@@ -141,7 +140,7 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 		return tagsList;
 	}
 
-	private List<string> MatchingTagsByGroup(List<DomInstanceValues> valuesList, List<string> groupNames)
+	private List<string> MatchingTagsByGroup(List<GQIUtils.DomInstanceValues> valuesList, List<string> groupNames)
 	{
 		var tagList = new List<string>();
 		foreach (var group in groupNames)
@@ -163,6 +162,11 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 	private List<GQIRow> AddRows(LiteElementInfoEvent nevionResponse, List<string> matchingTagsList)
 	{
 		if (nevionResponse.State != ElementState.Active)
+		{
+			return new List<GQIRow>();
+		}
+
+		if (matchingTagsList == null || !matchingTagsList.Any())
 		{
 			return new List<GQIRow>();
 		}
@@ -205,30 +209,5 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 		}
 
 		return new List<GQIRow>();
-	}
-
-	private List<DomInstanceValues> GetDomInstanceData()
-	{
-		var instances = domHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(Lca_Access.Definitions.Nevion_Control.Id));
-		var valuesList = new List<DomInstanceValues>();
-		foreach (var instance in instances)
-		{
-			var username = instance.GetFieldValue<string>(Lca_Access.Sections.BasicInformation.Id, Lca_Access.Sections.BasicInformation.Username)?.Value;
-			var group = instance.GetFieldValue<string>(Lca_Access.Sections.BasicInformation.Id, Lca_Access.Sections.BasicInformation.Group)?.Value;
-			var domTags = instance.GetFieldValue<string>(Lca_Access.Sections.NevionControl.Id, Lca_Access.Sections.NevionControl.Profiles)?.Value;
-
-			valuesList.Add(new DomInstanceValues { Username = username, Group = group, Tags = domTags });
-		}
-
-		return valuesList;
-	}
-
-	public class DomInstanceValues
-	{
-		public string Username { get; set; }
-
-		public string Group { get; set; }
-
-		public string Tags { get; set; }
 	}
 }

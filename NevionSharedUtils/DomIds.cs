@@ -56,12 +56,18 @@ namespace DomIds
 
 				= new SectionDefinitionID(new Guid("c8a19ab9-b66f-4b03-b022-7fbf88417c31"))
 				{ ModuleId = "lca_access" };
-				public static FieldDescriptorID Profiles
+				public static FieldDescriptorID SourceTags
 				{
 					get;
 				}
 
 				= new FieldDescriptorID(new Guid("f10f9ec6-d473-4cff-a917-190e042b70f5"));
+				public static FieldDescriptorID DestinationTags
+				{
+					get;
+				}
+
+				= new FieldDescriptorID(new Guid("fb7b6572-3bba-465a-9cc6-1b00626b4e89"));
 			}
 
 			public static class SwitchConfirmation

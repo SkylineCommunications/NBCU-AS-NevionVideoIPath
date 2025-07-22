@@ -69,16 +69,22 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 			};
 		}
 
-		List<GQIRow> rows;
+		List<GQIRow> rows = GetRows();
 
-		var valuesList = GQIUtils.GetDOMTags(domHelper);
+		return new GQIPage(rows.ToArray())
+		{
+			HasNextPage = false,
+		};
+	}
+
+	private List<GQIRow> GetRows()
+	{
+		var valuesList = GQIUtils.GetDOMTags(domHelper, "Source");
+		var rows = new List<GQIRow>();
 
 		if (valuesList.Count == 0)
 		{
-			return new GQIPage(new GQIRow[0])
-			{
-				HasNextPage = false,
-			};
+			return rows;
 		}
 
 		var responses = dms.SendMessages(new GetUserFullNameMessage(), new GetInfoMessage(InfoType.SecurityInfo));
@@ -88,41 +94,36 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 		var matchingTagList = new List<string>();
 		if (matchingByUsername != null)
 		{
-			matchingTagList = matchingByUsername.Tags.Split(',').ToList();
+			matchingTagList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new List<string>() : matchingByUsername.Tags.Split(',').ToList();
 		}
 
 		// Group Data
 		var securityResponse = responses?.OfType<GetUserInfoResponseMessage>().FirstOrDefault();
 
 		var groupNames = securityResponse.FindGroupNamesByUserName(systemUserName).ToList();
-		if (!matchingTagList.Any() && groupNames.Count > 0)
+		if (matchingByUsername == null && groupNames.Count > 0)
 		{
 			matchingTagList = GQIUtils.MatchingTagsByGroup(valuesList, groupNames);
 		}
 
-		if (matchingTagList.Count == 0)
+		if (!matchingTagList.Any())
 		{
-			return default;
+			return rows;
 		}
 
 		if (!String.IsNullOrEmpty(tag))
 		{
-			rows = GetSourceRows(tag);
+			return GetSourceRows(tag);
 		}
 		else if (!String.IsNullOrEmpty(profile))
 		{
 			var tagFilter = GetTagsForProfile();
-			rows = GetSourceRows(tagFilter.ToArray());
+			return GetSourceRows(tagFilter.ToArray());
 		}
 		else
 		{
-			rows = GetSourceRows(matchingTagList.ToArray());
+			return GetSourceRows(matchingTagList.ToArray());
 		}
-
-		return new GQIPage(rows.ToArray())
-		{
-			HasNextPage = false,
-		};
 	}
 
 	public OnInitOutputArgs OnInit(OnInitInputArgs args)

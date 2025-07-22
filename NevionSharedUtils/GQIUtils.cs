@@ -70,15 +70,20 @@
 			return objArray;
 		}
 
-		public static List<DomInstanceValues> GetDOMTags(DomHelper domHelper)
+		public static List<DomInstanceValues> GetDOMTags(DomHelper domHelper, string tagType)
 		{
 			var instances = domHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(Lca_Access.Definitions.Nevion_Control.Id));
+
+			var tagsFieldDescriptor = tagType == "Source"
+			? Lca_Access.Sections.NevionControl.SourceTags
+			: Lca_Access.Sections.NevionControl.DestinationTags;
+
 			var valuesList = new List<DomInstanceValues>();
 			foreach (var instance in instances)
 			{
 				var username = instance.GetFieldValue<string>(Lca_Access.Sections.BasicInformation.Id, Lca_Access.Sections.BasicInformation.Username)?.Value;
 				var group = instance.GetFieldValue<string>(Lca_Access.Sections.BasicInformation.Id, Lca_Access.Sections.BasicInformation.Group)?.Value;
-				var tags = instance.GetFieldValue<string>(Lca_Access.Sections.NevionControl.Id, Lca_Access.Sections.NevionControl.Profiles)?.Value;
+				var tags = instance.GetFieldValue<string>(Lca_Access.Sections.NevionControl.Id, tagsFieldDescriptor)?.Value;
 
 				valuesList.Add(new DomInstanceValues { Username = username, Group = group, Tags = tags });
 			}

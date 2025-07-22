@@ -69,7 +69,7 @@ public class GetFilteredProfiles : IGQIDataSource, IGQIOnInit, IGQIInputArgument
 	{
 		try
 		{
-			var valuesList = GQIUtils.GetDOMTags(domHelper);
+			var valuesList = GQIUtils.GetDOMTags(domHelper, "Source");
 
 			if (valuesList.Count == 0)
 			{

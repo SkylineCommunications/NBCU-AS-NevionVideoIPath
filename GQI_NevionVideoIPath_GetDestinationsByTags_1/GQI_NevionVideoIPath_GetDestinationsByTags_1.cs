@@ -11,18 +11,29 @@ using Skyline.DataMiner.Net.Messages;
 [GQIMetaData(Name = "Nevion VideoIPath Get Destinations By Tags")]
 public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOnInit, IGQIInputArguments
 {
-	private GQIDMS dms;
+	private readonly GQIStringArgument profileArgument = new GQIStringArgument("Profile") { IsRequired = false };
 
-	private GQIStringArgument profileArgument = new GQIStringArgument("Profile") { IsRequired = false };
+	private readonly GQIStringArgument tagArgument = new GQIStringArgument("Tags") { IsRequired = false };
+
 	private string profile;
-
-	private GQIStringArgument tagArgument = new GQIStringArgument("Tags") { IsRequired = false };
 	private string tag;
 
+	private GQIDMS dms;
 	private int dataminerId;
 	private int elementId;
 
+	private IGQILogger _logger;
 	private DomHelper domHelper;
+
+	public OnInitOutputArgs OnInit(OnInitInputArgs args)
+	{
+		dms = args.DMS;
+		domHelper = new DomHelper(dms.SendMessages, DomIds.Lca_Access.ModuleId);
+		_logger = args.Logger;
+		GetNevionVideoIPathElement();
+
+		return new OnInitOutputArgs();
+	}
 
 	public GQIColumn[] GetColumns()
 	{
@@ -58,16 +69,21 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 			};
 		}
 
-		List<GQIRow> rows;
+		List<GQIRow> rows = GetRows();
 
-		var valuesList = GQIUtils.GetDOMTags(domHelper);
+		return new GQIPage(rows.ToArray())
+		{
+			HasNextPage = false,
+		};
+	}
 
+	private List<GQIRow> GetRows()
+	{
+		var valuesList = GQIUtils.GetDOMTags(domHelper, "Destination");
+		var rows = new List<GQIRow>();
 		if (valuesList.Count == 0)
 		{
-			return new GQIPage(new GQIRow[0])
-			{
-				HasNextPage = false,
-			};
+			return rows;
 		}
 
 		var responses = dms.SendMessages(new GetUserFullNameMessage(), new GetInfoMessage(InfoType.SecurityInfo));
@@ -77,50 +93,36 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		var matchingTagList = new List<string>();
 		if (matchingByUsername != null)
 		{
-			matchingTagList = matchingByUsername.Tags.Split(',').ToList();
+			matchingTagList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new List<string>() : matchingByUsername.Tags.Split(',').ToList();
 		}
 
 		// Group Data
 		var securityResponse = responses?.OfType<GetUserInfoResponseMessage>().FirstOrDefault();
 
 		var groupNames = securityResponse.FindGroupNamesByUserName(systemUserName).ToList();
-		if (!matchingTagList.Any() && groupNames.Count > 0)
+		if (matchingByUsername == null && groupNames.Count > 0)
 		{
 			matchingTagList = GQIUtils.MatchingTagsByGroup(valuesList, groupNames);
 		}
 
-		if (matchingTagList.Count == 0)
+		if (!matchingTagList.Any())
 		{
-			return default;
+			return rows;
 		}
 
 		if (!String.IsNullOrEmpty(tag))
 		{
-			rows = GetDestinationByTagRows(tag);
+			return GetDestinationByTagRows(tag);
 		}
 		else if (!String.IsNullOrEmpty(profile))
 		{
 			var tagFilter = GetTagsForProfile();
-			rows = GetDestinationByTagRows(tagFilter.ToArray());
+			return GetDestinationByTagRows(tagFilter.ToArray());
 		}
 		else
 		{
-			rows = GetDestinationByTagRows(matchingTagList.ToArray());
+			return GetDestinationByTagRows(matchingTagList.ToArray());
 		}
-
-		return new GQIPage(rows.ToArray())
-		{
-			HasNextPage = false,
-		};
-	}
-
-	public OnInitOutputArgs OnInit(OnInitInputArgs args)
-	{
-		dms = args.DMS;
-		domHelper = new DomHelper(dms.SendMessages, DomIds.Lca_Access.ModuleId);
-		GetNevionVideoIPathElement();
-
-		return new OnInitOutputArgs();
 	}
 
 	private void GetNevionVideoIPathElement()
@@ -321,7 +323,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 
 public class DestinationByTagRow
 {
-	public DestinationByTagRow(ParameterValue[] columns, int row, Dictionary<string,string> destinationIdToSourceNameRelations)
+	public DestinationByTagRow(ParameterValue[] columns, int row, Dictionary<string, string> destinationIdToSourceNameRelations)
 	{
 		var nameCell = columns[0].ArrayValue[row];
 		Name = !nameCell.IsEmpty ? nameCell.CellValue.StringValue : String.Empty;
@@ -347,7 +349,7 @@ public class DestinationByTagRow
 		var fDescriptorLabelCell = columns[5].ArrayValue[row];
 		FDescriptorLabel = !fDescriptorLabelCell.IsEmpty ? fDescriptorLabelCell.CellValue.StringValue : String.Empty;
 
-		ConnectedSource = destinationIdToSourceNameRelations.TryGetValue(Id, out string sourceName)? sourceName : string.Empty;
+		ConnectedSource = destinationIdToSourceNameRelations.TryGetValue(Id, out string sourceName) ? sourceName : string.Empty;
 	}
 
 	public string Name { get; private set; }
