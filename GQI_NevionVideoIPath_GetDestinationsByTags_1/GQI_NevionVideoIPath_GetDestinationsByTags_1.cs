@@ -79,21 +79,23 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 
 	private List<GQIRow> GetRows()
 	{
-		var valuesList = GQIUtils.GetDOMTags(domHelper, "Destination");
+		var permissionList = GQIUtils.GetDOMPermissions(domHelper, "Destination");
 		var rows = new List<GQIRow>();
-		if (valuesList.Count == 0)
+		if (permissionList.Count == 0)
 		{
 			return rows;
 		}
 
 		var responses = dms.SendMessages(new GetUserFullNameMessage(), new GetInfoMessage(InfoType.SecurityInfo));
 		var systemUserName = responses?.OfType<GetUserFullNameResponseMessage>().FirstOrDefault()?.User.Trim();
-		var matchingByUsername = valuesList.FirstOrDefault(instance => instance.Username == systemUserName);
+		var matchingByUsername = permissionList.FirstOrDefault(instance => instance.Username == systemUserName);
 
 		var matchingTagList = new List<string>();
+		var matchingDestinationList = new List<string>();
 		if (matchingByUsername != null)
 		{
 			matchingTagList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new List<string>() : matchingByUsername.Tags.Split(',').ToList();
+			matchingDestinationList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new List<string>() : matchingByUsername.Destinations.Split(',').ToList();
 		}
 
 		// Group Data
@@ -102,26 +104,27 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		var groupNames = securityResponse.FindGroupNamesByUserName(systemUserName).ToList();
 		if (matchingByUsername == null && groupNames.Count > 0)
 		{
-			matchingTagList = GQIUtils.MatchingTagsByGroup(valuesList, groupNames);
+			matchingTagList = GQIUtils.MatchingValuesByGroup(permissionList, groupNames, x => x.Tags);
+			matchingDestinationList = GQIUtils.MatchingValuesByGroup(permissionList, groupNames, x => x.Destinations);
 		}
 
-		if (!matchingTagList.Any())
+		if (!matchingTagList.Any() && matchingDestinationList.Any())
 		{
 			return rows;
 		}
 
 		if (!String.IsNullOrEmpty(tag))
 		{
-			return GetDestinationByTagRows(tag);
+			return GetDestinationByTagRows(new string[] { tag }, matchingDestinationList.ToArray());
 		}
 		else if (!String.IsNullOrEmpty(profile))
 		{
 			var tagFilter = GetTagsForProfile();
-			return GetDestinationByTagRows(tagFilter.ToArray());
+			return GetDestinationByTagRows(tagFilter.ToArray(), matchingDestinationList.ToArray());
 		}
 		else
 		{
-			return GetDestinationByTagRows(matchingTagList.ToArray());
+			return GetDestinationByTagRows(matchingTagList.ToArray(), matchingDestinationList.ToArray());
 		}
 	}
 
@@ -215,7 +218,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		return columns;
 	}
 
-	private List<GQIRow> GetDestinationByTagRows(params string[] tagFilter)
+	private List<GQIRow> GetDestinationByTagRows(string[] tagFilter, string[] allowedDestinations)
 	{
 		var columns = GetDestinationTableColumns();
 		if (!columns.Any())
@@ -225,7 +228,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 
 		var destinationIdSourceNameRelations = GetCurrentServicesDestinationIdToSourceNameRelationDictionary();
 
-		return ProcessDestinationByTagTable(columns, destinationIdSourceNameRelations, tagFilter);
+		return ProcessDestinationByTagTable(columns, destinationIdSourceNameRelations, tagFilter, allowedDestinations);
 	}
 
 	private ParameterValue[] GetDestinationTableColumns()
@@ -246,9 +249,11 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		return columns;
 	}
 
-	private List<GQIRow> ProcessDestinationByTagTable(ParameterValue[] columns, Dictionary<string, string> destinationIdToSourceNameRelations, params string[] tagFilter)
+	private List<GQIRow> ProcessDestinationByTagTable(ParameterValue[] columns, Dictionary<string, string> destinationIdToSourceNameRelations, string[] tagFilter, string[] allowedDestinations)
 	{
 		var rows = new List<GQIRow>();
+		var allDestinations = allowedDestinations.Length > 1 && allowedDestinations[0].Equals("ALL");
+
 		for (int i = 0; i < columns[0].ArrayValue.Length; i++)
 		{
 			var destinationRow = new DestinationByTagRow(columns, i, destinationIdToSourceNameRelations);
@@ -258,6 +263,11 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 			}
 
 			if (!destinationRow.MatchesTagFilter(tagFilter))
+			{
+				continue;
+			}
+
+			if (!allDestinations || !allowedDestinations.Contains(destinationRow.DescriptorLabel))
 			{
 				continue;
 			}
