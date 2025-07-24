@@ -79,7 +79,7 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 
 	private List<GQIRow> GetRows()
 	{
-		var valuesList = GQIUtils.GetDOMTags(domHelper, "Source");
+		var valuesList = GQIUtils.GetDOMPermissions(domHelper, "Source");
 		var rows = new List<GQIRow>();
 
 		if (valuesList.Count == 0)
@@ -103,7 +103,7 @@ public class GQI_NevionVideoIPath_GetSources : IGQIDataSource, IGQIOnInit, IGQII
 		var groupNames = securityResponse.FindGroupNamesByUserName(systemUserName).ToList();
 		if (matchingByUsername == null && groupNames.Count > 0)
 		{
-			matchingTagList = GQIUtils.MatchingTagsByGroup(valuesList, groupNames);
+			matchingTagList = GQIUtils.MatchingValuesByGroup(valuesList, groupNames, x => x.Tags);
 		}
 
 		if (!matchingTagList.Any())

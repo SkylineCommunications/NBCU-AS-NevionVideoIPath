@@ -70,7 +70,7 @@
 			return objArray;
 		}
 
-		public static List<DomInstanceValues> GetDOMTags(DomHelper domHelper, string tagType)
+		public static List<DomInstanceValues> GetDOMPermissions(DomHelper domHelper, string tagType)
 		{
 			var instances = domHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(Lca_Access.Definitions.Nevion_Control.Id));
 
@@ -84,8 +84,9 @@
 				var username = instance.GetFieldValue<string>(Lca_Access.Sections.BasicInformation.Id, Lca_Access.Sections.BasicInformation.Username)?.Value;
 				var group = instance.GetFieldValue<string>(Lca_Access.Sections.BasicInformation.Id, Lca_Access.Sections.BasicInformation.Group)?.Value;
 				var tags = instance.GetFieldValue<string>(Lca_Access.Sections.NevionControl.Id, tagsFieldDescriptor)?.Value;
+				var destinations = instance.GetFieldValue<string>(Lca_Access.Sections.NevionControl.Id, Lca_Access.Sections.NevionControl.DestinationNames)?.Value;
 
-				valuesList.Add(new DomInstanceValues { Username = username, Group = group, Tags = tags });
+				valuesList.Add(new DomInstanceValues { Username = username, Group = group, Tags = tags, Destinations = destinations });
 			}
 
 			return valuesList;
@@ -105,23 +106,24 @@
 			return nevionResponse;
 		}
 
-		public static List<string> MatchingTagsByGroup(List<DomInstanceValues> valuesList, List<string> groupNames)
+		public static List<string> MatchingValuesByGroup(List<DomInstanceValues> valuesList, List<string> groupNames, Func<DomInstanceValues, string> selector)
 		{
-			var tagList = new List<string>();
+			var result = new List<string>();
+
 			foreach (var group in groupNames)
 			{
 				var matchingGroup = valuesList.FirstOrDefault(x => x.Group == group);
 				if (matchingGroup != null)
 				{
-					if (!matchingGroup.Tags.IsNullOrEmpty())
+					var rawValue = selector(matchingGroup);
+					if (!string.IsNullOrWhiteSpace(rawValue))
 					{
-						var domTags = matchingGroup.Tags.Split(',').ToList();
-						tagList.AddRange(domTags);
+						result.AddRange(rawValue.Split(','));
 					}
 				}
 			}
 
-			return tagList.Distinct().ToList();
+			return result.Distinct().ToList();
 		}
 
 		public class DomInstanceValues
@@ -131,6 +133,8 @@
 			public string Group { get; set; }
 
 			public string Tags { get; set; }
+
+			public string Destinations { get; set; }
 		}
 	}
 }

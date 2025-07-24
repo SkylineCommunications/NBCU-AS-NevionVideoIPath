@@ -69,7 +69,7 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 
 	private List<GQIRow> GetRows()
 	{
-		var valuesList = GQIUtils.GetDOMTags(domHelper, type);
+		var valuesList = GQIUtils.GetDOMPermissions(domHelper, type);
 		if (valuesList.Count == 0)
 		{
 			return new List<GQIRow>();
