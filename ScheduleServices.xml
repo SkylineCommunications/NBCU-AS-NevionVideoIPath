@@ -21,7 +21,7 @@
 			<Description>DestinationNames</Description>
 		</ScriptParameter>
 		<ScriptParameter id="4" type="string" values="">
-			<Description>Profile</Description>
+			<Description>SourceTags</Description>
 		</ScriptParameter>
 	</Parameters>
 

@@ -4,7 +4,11 @@
 	using System.Collections.Generic;
 	using System.Globalization;
 	using System.Linq;
+
 	using Skyline.DataMiner.Automation;
+	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS;
+	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.InterApp.Messages;
+	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
 	public class ScheduleDialog : Dialog
@@ -67,9 +71,48 @@
 			{
 				TriggerConnectOnElement();
 				VerifyConnectService(); // Temproary untill real time updates are fully supported in the apps.
+
+				// connect TAG
+				ConnectTagMCS(engine);
 			};
 
 			GenerateUI();
+		}
+
+		private void ConnectTagMCS(IEngine engine)
+		{
+			var dms = Engine.GetDms();
+			var tagMcsElement = dms.GetElement("TAG AWS QC MCS");
+
+			var tagMcs = new TagMCS(engine.GetUserConnection(), tagMcsElement.AgentId, tagMcsElement.Id);
+
+			var destinationName = DestinationNames[0];
+			var layoutName = RemoveBracketPrefix(destinationName);
+
+			var layoutType = tagMcsElement.GetTable(3600).GetColumn<string>(3604).GetDisplayValue(destinationName, Skyline.DataMiner.Core.DataMinerSystem.Common.KeyType.DisplayKey);
+			if (layoutType != "QC Channel_v1")
+			{
+				engine.ExitFail("MCS Layout is not the correct type");
+			}
+
+			var layoutRequest = new SetChannelInLayoutRequest(layoutName, destinationName, 1, MessageIdentifier.Name);
+			tagMcs.SendMessage(layoutRequest, TimeSpan.FromSeconds(10));
+		}
+
+		public static string RemoveBracketPrefix(string input)
+		{
+			if (String.IsNullOrWhiteSpace(input))
+			{
+				return input;
+			}
+
+			int closingBracketIndex = input.IndexOf(']');
+			if (input.StartsWith("[") && closingBracketIndex != -1)
+			{
+				return input.Substring(closingBracketIndex + 1).TrimStart();
+			}
+
+			return input;
 		}
 
 		public string SourceName
@@ -168,21 +211,36 @@
 			}
 		}
 
-		public Button ConnectButton { get; private set; } = new Button("Connect") {Style = ButtonStyle.CallToAction, Width = 120 };
+		public Button ConnectButton { get; private set; } = new Button("Connect") { Style = ButtonStyle.CallToAction, Width = 120 };
 
-		public Button CancelButton { get; private set; } = new Button("Cancel") {Width = 120 };
+		public Button CancelButton { get; private set; } = new Button("Cancel") { Width = 120 };
 
-		public void SetInput(string sourceName, List<string> destinationNames, string profile)
+		public void SetInput(string sourceName, List<string> destinationNames, string sourceTags)
 		{
 			SourceName = sourceName;
 			DestinationNames = destinationNames;
-			ProfileName = profile;
+			if (sourceTags.Contains("JPEG-XS-3G"))
+			{
+				ProfileName = "JPEG-XS-3G";
+			}
+			else if (sourceTags.Contains("JPEG-XS-HD"))
+			{
+				ProfileName = "JPEG-XS-HD";
+			}
+			else if (sourceTags.Contains("SRT"))
+			{
+				ProfileName = "AVC-HD-SRT-CALL";
+			}
+			else
+			{
+				Engine.ExitFail("Could not determine profile from the given source.");
+			}
 
 			Name = $"{SourceName}->{(DestinationNames.Count > 1 ? "Multipoint" : DestinationNames[0])}";
 
 			if (DestinationNames.Count > 1)
 			{
-				routeRadioButtonList.SetOptions(new[]{ "Point-to-Multipoint" });
+				routeRadioButtonList.SetOptions(new[] { "Point-to-Multipoint" });
 			}
 		}
 
