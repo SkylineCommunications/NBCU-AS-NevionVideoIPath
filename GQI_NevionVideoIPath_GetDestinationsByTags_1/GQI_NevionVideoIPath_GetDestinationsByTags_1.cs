@@ -11,12 +11,10 @@ using Skyline.DataMiner.Net.Messages;
 [GQIMetaData(Name = "Nevion VideoIPath Get Destinations By Tags")]
 public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOnInit, IGQIInputArguments
 {
-	private readonly GQIStringArgument profileArgument = new GQIStringArgument("Profile") { IsRequired = false };
-
-	private readonly GQIStringArgument tagArgument = new GQIStringArgument("Tags") { IsRequired = false };
+	private readonly GQIStringArgument sourceTagsArgument = new GQIStringArgument("Source Tags") { IsRequired = false };
 
 	private string profile;
-	private string tag;
+	private string sourceTags;
 
 	private GQIDMS dms;
 	private int dataminerId;
@@ -49,13 +47,12 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 
 	public GQIArgument[] GetInputArguments()
 	{
-		return new GQIArgument[] { profileArgument, tagArgument };
+		return new GQIArgument[] { sourceTagsArgument };
 	}
 
 	public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
 	{
-		profile = args.GetArgumentValue<string>(profileArgument);
-		tag = args.GetArgumentValue<string>(tagArgument);
+		sourceTags = args.GetArgumentValue<string>(sourceTagsArgument);
 		return new OnArgumentsProcessedOutputArgs();
 	}
 
@@ -90,12 +87,12 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		var systemUserName = responses?.OfType<GetUserFullNameResponseMessage>().FirstOrDefault()?.User.Trim();
 		var matchingByUsername = permissionList.FirstOrDefault(instance => instance.Username == systemUserName);
 
-		var matchingTagList = new List<string>();
-		var matchingDestinationList = new List<string>();
+		var matchingTagList = new HashSet<string>();
+		var matchingDestinationList = new HashSet<string>();
 		if (matchingByUsername != null)
 		{
-			matchingTagList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new List<string>() : matchingByUsername.Tags.Split(',').ToList();
-			matchingDestinationList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new List<string>() : matchingByUsername.Destinations.Split(',').ToList();
+			matchingTagList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new HashSet<string>() : matchingByUsername.Tags.Split(',').ToHashSet();
+			matchingDestinationList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new HashSet<string>() : matchingByUsername.Destinations.Split(',').ToHashSet();
 		}
 
 		// Group Data
@@ -104,28 +101,16 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		var groupNames = securityResponse.FindGroupNamesByUserName(systemUserName).ToList();
 		if (matchingByUsername == null && groupNames.Count > 0)
 		{
-			matchingTagList = GQIUtils.MatchingValuesByGroup(permissionList, groupNames, x => x.Tags);
-			matchingDestinationList = GQIUtils.MatchingValuesByGroup(permissionList, groupNames, x => x.Destinations);
+			matchingTagList = GQIUtils.MatchingValuesByGroup(permissionList, groupNames, x => x.Tags).ToHashSet();
+			matchingDestinationList = GQIUtils.MatchingValuesByGroup(permissionList, groupNames, x => x.Destinations).ToHashSet();
 		}
 
-		if (!matchingTagList.Any() && matchingDestinationList.Any())
+		if (!matchingTagList.Any() && !matchingDestinationList.Any())
 		{
 			return rows;
 		}
 
-		if (!String.IsNullOrEmpty(tag))
-		{
-			return GetDestinationByTagRows(new string[] { tag }, matchingDestinationList.ToArray());
-		}
-		else if (!String.IsNullOrEmpty(profile))
-		{
-			var tagFilter = GetTagsForProfile();
-			return GetDestinationByTagRows(tagFilter.ToArray(), matchingDestinationList.ToArray());
-		}
-		else
-		{
-			return GetDestinationByTagRows(matchingTagList.ToArray(), matchingDestinationList.ToArray());
-		}
+		return GetDestinationByTagRows(matchingTagList, matchingDestinationList);
 	}
 
 	private void GetNevionVideoIPathElement()
@@ -152,73 +137,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		}
 	}
 
-	private HashSet<string> GetTagsForProfile()
-	{
-		var columns = GetProfilesTableColumns();
-		if (!columns.Any())
-		{
-			return new HashSet<string>();
-		}
-
-		var profileTags = new HashSet<string>();
-
-		for (int i = 0; i < columns[1].ArrayValue.Length; i++)
-		{
-			var profileNameCell = columns[1].ArrayValue[i];
-			if (profileNameCell.IsEmpty)
-			{
-				continue;
-			}
-
-			var profileName = profileNameCell.CellValue.StringValue;
-			if (profileName != profile)
-			{
-				continue;
-			}
-
-			var profileTagsCell = columns[3].ArrayValue[i];
-			if (profileTagsCell.IsEmpty)
-			{
-				break;
-			}
-
-			var valueTags = profileTagsCell.CellValue.StringValue.Split(',');
-			foreach (var valueTag in valueTags)
-			{
-				if (String.IsNullOrEmpty(valueTag))
-				{
-					continue;
-				}
-
-				profileTags.Add(valueTag.Trim());
-			}
-
-			break;
-		}
-
-		return profileTags;
-	}
-
-	private ParameterValue[] GetProfilesTableColumns()
-	{
-		var tableId = 2400;
-		var getPartialTableMessage = new GetPartialTableMessage(dataminerId, elementId, tableId, new[] { "forceFullTable=true" });
-		var parameterChangeEventMessage = (ParameterChangeEventMessage)dms.SendMessage(getPartialTableMessage);
-		if (parameterChangeEventMessage.NewValue?.ArrayValue == null)
-		{
-			return new ParameterValue[0];
-		}
-
-		var columns = parameterChangeEventMessage.NewValue.ArrayValue;
-		if (columns.Length < 4)
-		{
-			return new ParameterValue[0];
-		}
-
-		return columns;
-	}
-
-	private List<GQIRow> GetDestinationByTagRows(string[] tagFilter, string[] allowedDestinations)
+	private List<GQIRow> GetDestinationByTagRows(HashSet<string> tagFilter, HashSet<string> allowedDestinations)
 	{
 		var columns = GetDestinationTableColumns();
 		if (!columns.Any())
@@ -249,10 +168,12 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		return columns;
 	}
 
-	private List<GQIRow> ProcessDestinationByTagTable(ParameterValue[] columns, Dictionary<string, string> destinationIdToSourceNameRelations, string[] tagFilter, string[] allowedDestinations)
+	private List<GQIRow> ProcessDestinationByTagTable(ParameterValue[] columns, Dictionary<string, string> destinationIdToSourceNameRelations, HashSet<string> tagFilter, HashSet<string> allowedDestinations)
 	{
 		var rows = new List<GQIRow>();
-		var allDestinations = allowedDestinations.Length > 1 && allowedDestinations[0].Equals("ALL");
+		bool allDestinations = allowedDestinations.Count == 1 && allowedDestinations.First().Equals("ALL", StringComparison.OrdinalIgnoreCase);
+		bool filterBySourceTags = !String.IsNullOrWhiteSpace(sourceTags);
+		bool sourceIsSrt = filterBySourceTags && sourceTags.Contains("SRT");
 
 		for (int i = 0; i < columns[0].ArrayValue.Length; i++)
 		{
@@ -267,7 +188,14 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 				continue;
 			}
 
-			if (!allDestinations || !allowedDestinations.Contains(destinationRow.DescriptorLabel))
+			var destinationTags = destinationRow.Tags ?? Array.Empty<string>();
+			_logger.Information($"{filterBySourceTags} - {sourceIsSrt} - {destinationTags} ");
+			if (filterBySourceTags && IsTagMatchRequired(sourceIsSrt, destinationTags))
+			{
+				continue;
+			}
+
+			if (!allDestinations && !allowedDestinations.Contains(destinationRow.DescriptorLabel))
 			{
 				continue;
 			}
@@ -276,6 +204,17 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		}
 
 		return rows;
+	}
+
+	private static bool IsTagMatchRequired(bool sourceIsSrt, IReadOnlyCollection<string> destinationTags)
+	{
+		if (destinationTags == null)
+		{
+			return false;
+		}
+
+		bool destinationIsSrt = destinationTags.Any(x => x.Contains("SRT"));
+		return (sourceIsSrt && !destinationIsSrt) || (!sourceIsSrt && destinationIsSrt);
 	}
 
 	private Dictionary<string, string> GetCurrentServicesDestinationIdToSourceNameRelationDictionary()
@@ -396,7 +335,7 @@ public class DestinationByTagRow
 		return true;
 	}
 
-	public bool MatchesTagFilter(params string[] filter)
+	public bool MatchesTagFilter(HashSet<string> filter)
 	{
 		if (filter == null || !filter.Any() || filter.Contains("ALL"))
 		{

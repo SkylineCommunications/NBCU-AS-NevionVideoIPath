@@ -67,6 +67,7 @@
 				for (int index2 = 0; index2 < length2; ++index2)
 					objArray[index2][index1] = arrayValue[index2].IsEmpty ? (object)null : arrayValue[index2].ArrayValue[0].InteropValue;
 			}
+
 			return objArray;
 		}
 
