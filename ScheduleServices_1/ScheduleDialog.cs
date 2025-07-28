@@ -89,11 +89,13 @@
 			var destinationName = DestinationNames[0];
 			var layoutName = RemoveBracketPrefix(destinationName);
 
-			var layoutType = tagMcsElement.GetTable(3600).GetColumn<string>(3604).GetDisplayValue(destinationName, Skyline.DataMiner.Core.DataMinerSystem.Common.KeyType.DisplayKey);
-			if (layoutType != "QC Channel_v1")
-			{
-				engine.ExitFail("MCS Layout is not the correct type");
-			}
+			// get the correct channel name from tag finding all configuration display keys containing destination name (only should be one)
+
+			// var layoutType = tagMcsElement.GetTable(3600).GetColumn<string>(3604).GetDisplayValue(destinationName, Skyline.DataMiner.Core.DataMinerSystem.Common.KeyType.DisplayKey);
+			// if (layoutType != "QC Channel_v1")
+			// {
+			// 	engine.ExitFail("MCS Layout is not the correct type");
+			// }
 
 			var layoutRequest = new SetChannelInLayoutRequest(layoutName, destinationName, 1, MessageIdentifier.Name);
 			tagMcs.SendMessage(layoutRequest, TimeSpan.FromSeconds(10));
@@ -221,11 +223,11 @@
 			DestinationNames = destinationNames;
 			if (sourceTags.Contains("JPEG-XS-3G"))
 			{
-				ProfileName = "JPEG-XS-3G";
+				ProfileName = "JPEG-XS-3G-TO-CLOUD";
 			}
 			else if (sourceTags.Contains("JPEG-XS-HD"))
 			{
-				ProfileName = "JPEG-XS-HD";
+				ProfileName = "JPEG-XS-HD-TO-CLOUD";
 			}
 			else if (sourceTags.Contains("SRT"))
 			{

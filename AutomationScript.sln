@@ -131,6 +131,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Actions", "Actions", "{5F48
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GQI_NevionVideoIPath_GetFilteredProfiles_1", "GQI_NevionVideoIPath_GetFilteredProfiles_1\GQI_NevionVideoIPath_GetFilteredProfiles_1.csproj", "{833FEC06-8516-4B9A-939A-5DA911E77197}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Select TAG Audio", "Select TAG Audio", "{BD6B2761-9682-4917-94B4-BA095B24C342}"
+	ProjectSection(SolutionItems) = preProject
+		Select TAG Audio.xml = Select TAG Audio.xml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Actions", "Actions", "{C704728F-EB59-4F7D-A130-7C8D80F80517}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Select TAG Audio_1", "Select TAG Audio_1\Select TAG Audio_1.csproj", "{0FC26BF7-27A5-4756-8333-F8C07DDB5FEF}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -177,6 +186,10 @@ Global
 		{833FEC06-8516-4B9A-939A-5DA911E77197}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{833FEC06-8516-4B9A-939A-5DA911E77197}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{833FEC06-8516-4B9A-939A-5DA911E77197}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0FC26BF7-27A5-4756-8333-F8C07DDB5FEF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0FC26BF7-27A5-4756-8333-F8C07DDB5FEF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0FC26BF7-27A5-4756-8333-F8C07DDB5FEF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0FC26BF7-27A5-4756-8333-F8C07DDB5FEF}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -219,6 +232,9 @@ Global
 		{ECE140F0-BB6B-47A6-BA06-8F352AD1C160} = {A5F96D06-DEB8-49A8-B58A-74B24B264661}
 		{5F48EABA-6600-4199-BB42-9770EA3DB769} = {ECE140F0-BB6B-47A6-BA06-8F352AD1C160}
 		{833FEC06-8516-4B9A-939A-5DA911E77197} = {5F48EABA-6600-4199-BB42-9770EA3DB769}
+		{BD6B2761-9682-4917-94B4-BA095B24C342} = {593F7762-15D5-465B-81FD-475215695E3F}
+		{C704728F-EB59-4F7D-A130-7C8D80F80517} = {BD6B2761-9682-4917-94B4-BA095B24C342}
+		{0FC26BF7-27A5-4756-8333-F8C07DDB5FEF} = {C704728F-EB59-4F7D-A130-7C8D80F80517}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D725A676-34B2-415E-B7A0-B037D947C360}

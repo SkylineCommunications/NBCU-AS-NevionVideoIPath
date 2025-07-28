@@ -120,7 +120,7 @@ namespace ScheduleServices_1
 				Initialize(engine, sourceName, destinationNames, sourceTagsParameter);
 
 				var controller = new InteractiveController(engine);
-				controller.Run(scheduleDialog);
+				controller.ShowDialog(scheduleDialog);
 			}
 			catch (ScriptAbortException)
 			{
