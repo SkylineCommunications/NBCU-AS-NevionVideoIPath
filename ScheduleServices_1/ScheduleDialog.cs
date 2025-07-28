@@ -59,7 +59,7 @@
 
 		private List<string> destinationNames;
 		private string[] primaryKeysCurrentServices = new string[0];
-
+		private bool skipVIPConnection;
 
 		public ScheduleDialog(IEngine engine) : base(engine)
 		{
@@ -91,13 +91,16 @@
 
 			ConnectButton.Pressed += (s, o) =>
 			{
-				if(!TryDeleteConnections())
+				if (!TryDeleteConnections())
 				{
 					ErrorMessageDialog.ShowMessage(engine, $"Unable to delete the pre-existing connections: {String.Join(",", existingConnections.Values)}");
 				}
 
-				TriggerConnectOnElement();
-				VerifyConnectService(); // Temproary untill real time updates are fully supported in the apps.
+				if (!skipVIPConnection)
+				{
+					TriggerConnectOnElement();
+					VerifyConnectService(); // Temproary untill real time updates are fully supported in the apps.
+				}
 
 				// connect TAG
 				ConnectTagMCS(engine);
@@ -110,6 +113,12 @@
 		{
 			if (existingConnections.Count > 0)
 			{
+				if (skipVIPConnection)
+				{
+					// connection between source and destination exists, skip
+					return true;
+				}
+
 				foreach (var key in existingConnections.Keys)
 				{
 					connectionsTable.GetColumn<double?>(NevionConnectionsTable.Pid.Connection).SetValue(key, 1);
@@ -305,6 +314,13 @@
 			CheckCurrentSourcesAndDestinations(connectionsWithDestination);
 			if (existingConnections.Count > 0)
 			{
+				if (existingConnections.Any(x => x.Value.Contains(sourceNameValue.Text) && x.Value.Contains(destinationNamesLabel.Text)))
+				{
+					skipVIPConnection = true;
+					existingConnectionsText.Text = "NOTE: This VIP Connection already exists and will not be recreated";
+					return;
+				}
+
 				foreach (var connection in existingConnections)
 				{
 					existingConnectionsText.Text += $"{Environment.NewLine}  • [{connection.Key}]: {connection.Value}";
