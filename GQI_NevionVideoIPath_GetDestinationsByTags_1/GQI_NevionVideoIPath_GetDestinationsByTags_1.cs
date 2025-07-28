@@ -13,7 +13,6 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 {
 	private readonly GQIStringArgument sourceTagsArgument = new GQIStringArgument("Source Tags") { IsRequired = false };
 
-	private string profile;
 	private string sourceTags;
 
 	private GQIDMS dms;
@@ -189,7 +188,6 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 			}
 
 			var destinationTags = destinationRow.Tags ?? Array.Empty<string>();
-			_logger.Information($"{filterBySourceTags} - {sourceIsSrt} - {destinationTags} ");
 			if (filterBySourceTags && IsTagMatchRequired(sourceIsSrt, destinationTags))
 			{
 				continue;

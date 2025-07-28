@@ -57,6 +57,8 @@ namespace Edit_Profiles_1
 	using System.Linq;
 	using System.Text;
 
+	using NevionCommon_1;
+
 	using Newtonsoft.Json;
 
 	using Skyline.DataMiner.Automation;
@@ -113,8 +115,8 @@ namespace Edit_Profiles_1
 
 		private void RunSafe(IEngine engine)
 		{
-			var nevionElementId = GetOneDeserializedValue(engine.GetScriptParam("Nevion Element ID").Value);
-			var instanceId = GetOneDeserializedValue(engine.GetScriptParam("Instance ID").Value);
+			var nevionElementId = NevionUtils.GetOneDeserializedValue(engine.GetScriptParam("Nevion Element ID").Value);
+			var instanceId = NevionUtils.GetOneDeserializedValue(engine.GetScriptParam("Instance ID").Value);
 
 			if (String.IsNullOrEmpty(nevionElementId))
 			{
@@ -125,23 +127,6 @@ namespace Edit_Profiles_1
 			var profileDialog = new ProfileDialog(engine, nevionElementId, instanceId);
 			profileDialog.InitializeEventHandlers(controller);
 			controller.ShowDialog(profileDialog);
-		}
-
-		public static string GetOneDeserializedValue(string scriptParam)
-		{
-			if (scriptParam.Count() <= 2)
-			{
-				return scriptParam;
-			}
-
-			if (scriptParam.Contains("[") && scriptParam.Contains("]"))
-			{
-				return SecureNewtonsoftDeserialization.DeserializeObject<List<string>>(scriptParam)[0];
-			}
-			else
-			{
-				return scriptParam;
-			}
 		}
 	}
 }

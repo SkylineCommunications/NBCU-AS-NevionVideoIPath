@@ -11,5 +11,6 @@
   <ItemGroup>
     <Compile Include="$(MSBuildThisFileDirectory)DomIds.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)GQIUtils.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)NevionIds.cs" />
   </ItemGroup>
 </Project>

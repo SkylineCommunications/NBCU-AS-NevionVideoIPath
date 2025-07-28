@@ -2,14 +2,21 @@
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Globalization;
 	using System.Linq;
+	using System.Threading;
+
+	using NevionCommon_1;
 
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.InterApp.Messages;
 	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
+	using Skyline.DataMiner.Core.DataMinerSystem.Common;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
+
+	using static NevionSharedUtils.NevionIds;
 
 	public class ScheduleDialog : Dialog
 	{
@@ -40,14 +47,26 @@
 		private readonly Label routeLabel = new Label("Route");
 		private readonly RadioButtonList routeRadioButtonList = new RadioButtonList(new[] { "Point-to-Point", "Point-to-Multipoint" }, "Point-to-Multipoint");
 
+		private readonly Label existingVIPConnections = new Label("Existing Connections") { IsVisible = false };
+		private readonly Label existingConnectionsText = new Label("NOTE: The selected destination is in use, hitting connect will delete this existing connection:") { IsVisible = false };
+
+		private readonly IDms dms;
+		private readonly IDmsElement nevionElement;
+		private readonly IDmsTable connectionsTable;
+		private readonly Dictionary<string, string> existingConnections;
+
 		private readonly Element nevionVideoIPathElement;
 
 		private List<string> destinationNames;
 		private string[] primaryKeysCurrentServices = new string[0];
 
+
 		public ScheduleDialog(IEngine engine) : base(engine)
 		{
 			Title = "Connect Services";
+			dms = engine.GetDms();
+
+			existingConnections = new Dictionary<string, string>();
 
 			nevionVideoIPathElement = engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
 			if (nevionVideoIPathElement == null)
@@ -62,6 +81,9 @@
 				return;
 			}
 
+			nevionElement = dms.GetElement("Nevion VIP - Prod");
+			connectionsTable = nevionElement.GetTable(NevionConnectionsTable.TableId);
+
 			primaryKeysCurrentServices = nevionVideoIPathElement.GetTablePrimaryKeys(1500); // Used to check if new connection entries has been added after the ConnectServices.
 
 			startRadioButtonList.Changed += (s, o) => HandleStartOptionChanged();
@@ -69,6 +91,11 @@
 
 			ConnectButton.Pressed += (s, o) =>
 			{
+				if(!TryDeleteConnections())
+				{
+					ErrorMessageDialog.ShowMessage(engine, $"Unable to delete the pre-existing connections: {String.Join(",", existingConnections.Values)}");
+				}
+
 				TriggerConnectOnElement();
 				VerifyConnectService(); // Temproary untill real time updates are fully supported in the apps.
 
@@ -79,12 +106,39 @@
 			GenerateUI();
 		}
 
+		private bool TryDeleteConnections()
+		{
+			if (existingConnections.Count > 0)
+			{
+				foreach (var key in existingConnections.Keys)
+				{
+					connectionsTable.GetColumn<double?>(NevionConnectionsTable.Pid.Connection).SetValue(key, 1);
+					Thread.Sleep(1000);
+				}
+
+				bool CheckKeys()
+				{
+					var updatedTableKeys = connectionsTable.GetPrimaryKeys().ToList();
+					var areKeysInTable = existingConnections.Keys.Any(key => updatedTableKeys.Contains(key));
+					return !areKeysInTable;
+				}
+
+				if (NevionUtils.Retry(CheckKeys, TimeSpan.FromSeconds(30)))
+				{
+					return true;
+				}
+				else
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
 		private void ConnectTagMCS(IEngine engine)
 		{
-			var dms = Engine.GetDms();
 			var tagMcsElement = dms.GetElement("TAG AWS QC MCS");
-
-			var tagMcs = new TagMCS(engine.GetUserConnection(), tagMcsElement.AgentId, tagMcsElement.Id);
 
 			var destinationName = DestinationNames[0];
 			var layoutName = RemoveBracketPrefix(destinationName);
@@ -97,6 +151,7 @@
 			// 	engine.ExitFail("MCS Layout is not the correct type");
 			// }
 
+			var tagMcs = new TagMCS(engine.GetUserConnection(), tagMcsElement.AgentId, tagMcsElement.Id);
 			var layoutRequest = new SetChannelInLayoutRequest(layoutName, destinationName, 1, MessageIdentifier.Name);
 			tagMcs.SendMessage(layoutRequest, TimeSpan.FromSeconds(10));
 		}
@@ -244,6 +299,20 @@
 			{
 				routeRadioButtonList.SetOptions(new[] { "Point-to-Multipoint" });
 			}
+
+			var connectionsWithDestination = connectionsTable.QueryData(new List<ColumnFilter> { new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = NevionConnectionsTable.Pid.DestinationName, Value = DestinationNames[0] } });
+
+			CheckCurrentSourcesAndDestinations(connectionsWithDestination);
+			if (existingConnections.Count > 0)
+			{
+				foreach (var connection in existingConnections)
+				{
+					existingConnectionsText.Text += $"{Environment.NewLine}  • [{connection.Key}]: {connection.Value}";
+				}
+
+				existingVIPConnections.IsVisible = true;
+				existingConnectionsText.IsVisible = true;
+			}
 		}
 
 		public void TriggerConnectOnElement()
@@ -360,10 +429,34 @@
 			AddWidget(routeLabel, ++row, 0, HorizontalAlignment.Left, VerticalAlignment.Top);
 			AddWidget(routeRadioButtonList, row, 1, HorizontalAlignment.Left, VerticalAlignment.Top);
 
+			AddWidget(existingConnectionsText, ++row, 1);
+
 			AddWidget(new WhiteSpace(), ++row, 0);
 
 			AddWidget(CancelButton, ++row, 0);
 			AddWidget(ConnectButton, row, 1, HorizontalAlignment.Right);
+		}
+
+		private void CheckCurrentSourcesAndDestinations(IEnumerable<object[]> connectionsTableData)
+		{
+			foreach (var rowData in connectionsTableData)
+			{
+				var key = Convert.ToString(rowData[NevionConnectionsTable.Idx.ServiceId]);
+				if (key.EndsWith("-1") || key.EndsWith("-2"))
+				{
+					continue;
+				}
+
+				AddExistingConnection(rowData, key);
+			}
+		}
+
+		private void AddExistingConnection(object[] rowData, string serviceId)
+		{
+			var sourceName = Convert.ToString(rowData[NevionConnectionsTable.Idx.SourceName]);
+			var destName = Convert.ToString(rowData[NevionConnectionsTable.Idx.DestinationName]);
+
+			existingConnections.Add(serviceId, $"{sourceName} → {destName}");
 		}
 	}
 }

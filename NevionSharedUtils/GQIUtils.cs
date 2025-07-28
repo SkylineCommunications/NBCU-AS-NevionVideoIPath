@@ -1,7 +1,10 @@
 ﻿namespace NevionSharedUtils
 {
-	using DomIds;
+	using System;
 	using System.Collections.Generic;
+	using System.Linq;
+
+	using DomIds;
 
 	using Skyline.DataMiner.Analytics.GenericInterface;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
@@ -9,8 +12,6 @@
 	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.Sections;
-	using System;
-	using System.Linq;
 
 	public class GQIUtils
 	{

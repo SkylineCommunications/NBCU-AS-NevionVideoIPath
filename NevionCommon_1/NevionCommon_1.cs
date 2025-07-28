@@ -1,6 +1,6 @@
 /*
 ****************************************************************************
-*  Copyright (c) 2024,  Skyline Communications NV  All Rights Reserved.    *
+*  Copyright (c) 2025,  Skyline Communications NV  All Rights Reserved.    *
 ****************************************************************************
 
 By using this script, you expressly agree with the usage terms and
@@ -45,23 +45,17 @@ Revision History:
 
 DATE		VERSION		AUTHOR			COMMENTS
 
-dd/mm/2024	1.0.0.1		XXX, Skyline	Initial version
+dd/mm/2025	1.0.0.1		XXX, Skyline	Initial version
 ****************************************************************************
 */
 
-namespace TAG_SelectTAGAudio_1
+namespace NevionCommon_1
 {
 	using System;
 	using System.Collections.Generic;
-	using System.Linq;
-
-	using Nevion.TagAudioDialog;
-
-	using NevionCommon_1;
-
+	using System.Globalization;
+	using System.Text;
 	using Skyline.DataMiner.Automation;
-	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
-	using Skyline.DataMiner.Utils.SecureCoding.SecureSerialization.Json.Newtonsoft;
 
 	/// <summary>
 	/// Represents a DataMiner Automation script.
@@ -74,34 +68,40 @@ namespace TAG_SelectTAGAudio_1
 		/// <param name="engine">Link with SLAutomation process.</param>
 		public void Run(IEngine engine)
 		{
-			// DO NOT REMOVE THIS COMMENTED-OUT CODE OR THE SCRIPT WON'T RUN!
-			// DataMiner evaluates if the script needs to launch in interactive mode.
-			// This is determined by a simple string search looking for "engine.ShowUI" in the source code.
-			// However, because of the toolkit NuGet package, this string cannot be found here.
-			// So this comment is here as a workaround.
-			//// engine.ShowUI();
-
 			try
 			{
-				var channelName = NevionUtils.GetOneDeserializedValue(engine.GetScriptParam("Channel Name").Value);
-
-				var controller = new InteractiveController(engine);
-				var dialog = new TagAudioDialog(engine);
-
-				dialog.Initialize("TAG AWS QC MCS", channelName);
-				dialog.CancelButton.Pressed += (sender, args) => engine.ExitSuccess("Changed Audio Canceled by User");
-
-				controller.ShowDialog(dialog);
+				RunSafe(engine);
 			}
 			catch (ScriptAbortException)
 			{
-				// no action
+				// Catch normal abort exceptions (engine.ExitFail or engine.ExitSuccess)
+				throw; // Comment if it should be treated as a normal exit of the script.
 			}
-			catch (Exception ex)
+			catch (ScriptForceAbortException)
 			{
-				engine.GenerateInformation($"Exception thrown: {ex}");
+				// Catch forced abort exceptions, caused via external maintenance messages.
 				throw;
 			}
+			catch (ScriptTimeoutException)
+			{
+				// Catch timeout exceptions for when a script has been running for too long.
+				throw;
+			}
+			catch (InteractiveUserDetachedException)
+			{
+				// Catch a user detaching from the interactive script by closing the window.
+				// Only applicable for interactive scripts, can be removed for non-interactive scripts.
+				throw;
+			}
+			catch (Exception e)
+			{
+				engine.ExitFail("Run|Something went wrong: " + e);
+			}
+		}
+
+		private void RunSafe(IEngine engine)
+		{
+			// TODO: Define code here
 		}
 	}
 }
