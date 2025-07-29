@@ -67,10 +67,10 @@
 				var audioId = match.Success ? match.Groups[1].Value : "N/A";
 				var pid = Convert.ToString(x[1]);
 
-				int audioFormatCode = 0;
+				var audioFormatCode = 0;
 				if (x[19] != null)
 				{
-					int.TryParse(Convert.ToString(x[19]), out audioFormatCode);
+					audioFormatCode = Convert.ToInt32(Convert.ToString(x[19]));
 				}
 
 				string audioFormat;
@@ -101,7 +101,7 @@
 			{
 				var selectedPid = this.ChannelAudioEncodingDropDown.Selected;
 				var match = Regex.Match(selectedPid, @"Aud\((\d+)\)\s+PID\s+(\d+)");
-				engine.GenerateInformation($"selected pid: {selectedPid}");
+
 				string audioId = match.Groups[1].Value;
 				string pid = match.Groups[2].Value;
 

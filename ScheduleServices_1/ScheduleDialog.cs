@@ -5,6 +5,7 @@
 	using System.Diagnostics;
 	using System.Globalization;
 	using System.Linq;
+	using System.Text;
 	using System.Threading;
 
 	using NevionCommon_1;
@@ -61,6 +62,8 @@
 		private string[] primaryKeysCurrentServices = new string[0];
 		private bool skipVIPConnection;
 
+		private static int ChannelConfigTable = 2100;
+
 		public ScheduleDialog(IEngine engine) : base(engine)
 		{
 			Title = "Connect Services";
@@ -99,7 +102,7 @@
 				if (!skipVIPConnection)
 				{
 					TriggerConnectOnElement();
-					VerifyConnectService(); // Temproary untill real time updates are fully supported in the apps.
+					VerifyConnectService(); // Temporary until real time updates are fully supported in the apps.
 				}
 
 				// connect TAG
@@ -125,14 +128,14 @@
 					Thread.Sleep(1000);
 				}
 
-				bool CheckKeys()
+				bool CheckKeysDeleted()
 				{
 					var updatedTableKeys = connectionsTable.GetPrimaryKeys().ToList();
 					var areKeysInTable = existingConnections.Keys.Any(key => updatedTableKeys.Contains(key));
 					return !areKeysInTable;
 				}
 
-				if (NevionUtils.Retry(CheckKeys, TimeSpan.FromSeconds(30)))
+				if (NevionUtils.Retry(CheckKeysDeleted, TimeSpan.FromSeconds(30)))
 				{
 					return true;
 				}
@@ -153,6 +156,24 @@
 			var layoutName = RemoveBracketPrefix(destinationName);
 
 			// get the correct channel name from tag finding all configuration display keys containing destination name (only should be one)
+			var tagMcs = new TagMCS(engine.GetUserConnection(), tagMcsElement.AgentId, tagMcsElement.Id);
+
+			var layoutRequest = new SetChannelInLayoutRequest(layoutName, destinationName, 1, MessageIdentifier.Name);
+			tagMcs.SendMessage(layoutRequest, TimeSpan.FromSeconds(10));
+
+			var channelConfigTable = tagMcsElement.GetTable(ChannelConfigTable);
+			var displayKeys = channelConfigTable.GetDisplayKeys();
+			var matchingDisplayKey = displayKeys.FirstOrDefault(x => x.Contains(destinationName));
+			var primaryKeyForChannel = channelConfigTable.GetPrimaryKey(matchingDisplayKey);
+			var newChannelName = $"{SourceName}->{DestinationNames[0]}";
+
+			var errorBuilder = new StringBuilder();
+			ChangeChannelLabelRequest(tagMcs, errorBuilder, primaryKeyForChannel, newChannelName);
+
+			if (errorBuilder.Length != 0)
+			{
+				ErrorMessageDialog.ShowMessage(engine, errorBuilder.ToString());
+			}
 
 			// var layoutType = tagMcsElement.GetTable(3600).GetColumn<string>(3604).GetDisplayValue(destinationName, Skyline.DataMiner.Core.DataMinerSystem.Common.KeyType.DisplayKey);
 			// if (layoutType != "QC Channel_v1")
@@ -160,9 +181,38 @@
 			// 	engine.ExitFail("MCS Layout is not the correct type");
 			// }
 
-			var tagMcs = new TagMCS(engine.GetUserConnection(), tagMcsElement.AgentId, tagMcsElement.Id);
-			var layoutRequest = new SetChannelInLayoutRequest(layoutName, destinationName, 1, MessageIdentifier.Name);
-			tagMcs.SendMessage(layoutRequest, TimeSpan.FromSeconds(10));
+		}
+
+		private void ChangeChannelLabelRequest(TagMCS interAppTagMcs, StringBuilder errorBuilder, string channelId, string newChannelLabel)
+		{
+			var getChannelConfig = new GetChannelConfigRequest(channelId, MessageIdentifier.ID);
+			var response = interAppTagMcs.SendMessage(getChannelConfig, TimeSpan.FromSeconds(30)) as GetChannelConfigResponse;
+
+			if (response == null)
+			{
+				errorBuilder.AppendLine($"Unable to update label for channel with ID {channelId}.");
+				return;
+			}
+
+			if (response.Success)
+			{
+				response.Channel.Label = newChannelLabel;
+				var setMessage = new SetChannelConfigRequest
+				{
+					Channel = response.Channel,
+				};
+
+				var setResponse = interAppTagMcs.SendMessage(setMessage, TimeSpan.FromSeconds(30)) as InterAppResponse;
+
+				if (!setResponse.Success)
+				{
+					errorBuilder.AppendLine($"Unable to update label for channel with ID {channelId}.");
+				}
+			}
+			else
+			{
+				errorBuilder.AppendLine(response.ResponseMessage);
+			}
 		}
 
 		public static string RemoveBracketPrefix(string input)
