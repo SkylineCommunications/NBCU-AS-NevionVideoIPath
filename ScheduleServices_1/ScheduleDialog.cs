@@ -87,7 +87,7 @@
 			nevionElement = dms.GetElement("Nevion VIP - Prod");
 			connectionsTable = nevionElement.GetTable(NevionConnectionsTable.TableId);
 
-			primaryKeysCurrentServices = nevionVideoIPathElement.GetTablePrimaryKeys(1500); // Used to check if new connection entries has been added after the ConnectServices.
+			primaryKeysCurrentServices = nevionVideoIPathElement.GetTablePrimaryKeys(NevionConnectionsTable.TableId); // Used to check if new connection entries has been added after the ConnectServices.
 
 			startRadioButtonList.Changed += (s, o) => HandleStartOptionChanged();
 			endRadioButtonList.Changed += (s, o) => HandleEndOptionChanged();
