@@ -335,6 +335,7 @@
 		{
 			SourceName = sourceName;
 			DestinationNames = destinationNames;
+
 			if (sourceTags.Contains("JPEG-XS-3G"))
 			{
 				ProfileName = "JPEG-XS-3G-TO-CLOUD";
@@ -345,7 +346,7 @@
 			}
 			else if (sourceTags.Contains("SRT"))
 			{
-				ProfileName = "AVC-HD-SRT-CALL";
+				ProfileName = "Automatic";
 			}
 			else
 			{
@@ -385,7 +386,7 @@
 		{
 			var visioString = String.Join(
 				";",
-				ProfileName,
+				ProfileName == "Automatic" ? String.Empty : ProfileName,
 				Name,
 				SourceName,
 				String.Join(",", DestinationNames),
