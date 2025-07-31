@@ -109,30 +109,18 @@ namespace ScheduleServices_1
 					return;
 				}
 
-				var profileInputParameter = engine.GetScriptParam("Profile").Value;
-				if (!TryGetInputValue(profileInputParameter, out List<string> profileNames))
+				var sourceTagsParameter = engine.GetScriptParam("SourceTags").Value;
+
+				if (String.IsNullOrEmpty(sourceTagsParameter))
 				{
-					engine.ExitFail("Invalid profile!");
+					engine.ExitFail("Invalid source tags!");
 					return;
 				}
 
-				if (profileNames.Count != 1)
-				{
-					engine.ExitFail("Only 1 profile should be selected!");
-					return;
-				}
-
-				var profileName = profileNames.FirstOrDefault();
-				if (String.IsNullOrEmpty(profileName))
-				{
-					engine.ExitFail("Invalid profile!");
-					return;
-				}
-
-				Initialize(engine, sourceName, destinationNames, profileName);
+				Initialize(engine, sourceName, destinationNames, sourceTagsParameter);
 
 				var controller = new InteractiveController(engine);
-				controller.Run(scheduleDialog);
+				controller.ShowDialog(scheduleDialog);
 			}
 			catch (ScriptAbortException)
 			{
@@ -145,10 +133,10 @@ namespace ScheduleServices_1
 			}
 		}
 
-		private static void Initialize(IEngine engine, string sourceName, List<string> destinationNames, string profile)
+		private static void Initialize(IEngine engine, string sourceName, List<string> destinationNames, string sourceTags)
 		{
 			scheduleDialog = new ScheduleDialog(engine);
-			scheduleDialog.SetInput(sourceName, destinationNames, profile);
+			scheduleDialog.SetInput(sourceName, destinationNames, sourceTags);
 			scheduleDialog.ConnectButton.Pressed += (s, o) => engine.ExitSuccess(String.Empty);
 			scheduleDialog.CancelButton.Pressed += (s, o) => engine.ExitSuccess(String.Empty);
 		}

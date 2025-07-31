@@ -69,36 +69,22 @@ public class GetFilteredProfiles : IGQIDataSource, IGQIOnInit, IGQIInputArgument
 	{
 		try
 		{
-			var instances = domHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(Lca_Access.Definitions.Nevion_Control.Id));
-			var valuesList = new List<DomInstanceValues>();
-			foreach (var instance in instances)
-			{
-				var username = instance.GetFieldValue<string>(Lca_Access.Sections.BasicInformation.Id, Lca_Access.Sections.BasicInformation.Username)?.Value;
-				var group = instance.GetFieldValue<string>(Lca_Access.Sections.BasicInformation.Id, Lca_Access.Sections.BasicInformation.Group)?.Value;
-				var tags = instance.GetFieldValue<string>(Lca_Access.Sections.NevionControl.Id, Lca_Access.Sections.NevionControl.Profiles)?.Value;
-
-				valuesList.Add(new DomInstanceValues { Username = username, Group = group, Tags = tags });
-			}
+			var valuesList = GQIUtils.GetDOMPermissions(domHelper, "Source");
 
 			if (valuesList.Count == 0)
 			{
 				return new List<GQIRow>();
 			}
 
-			var sElementId = nevionElementId.Split('/');
-			var nevionElementRequest = new GetLiteElementInfo
-			{
-				DataMinerID = Convert.ToInt32(sElementId[0]),
-				ElementID = Convert.ToInt32(sElementId[1]),
-			};
-
-			var nevionResponse = _dms.SendMessage(nevionElementRequest) as LiteElementInfoEvent;
+			var nevionResponse = GQIUtils.GetNevionElement(_dms, nevionElementId);
 
 			if (nevionResponse != null)
 			{
 				var responses = _dms.SendMessages(new GetUserFullNameMessage(), new GetInfoMessage(InfoType.SecurityInfo));
 				var systemUserName = responses?.OfType<GetUserFullNameResponseMessage>().FirstOrDefault()?.User.Trim();
+
 				var matchingByUsername = valuesList.FirstOrDefault(instance => instance.Username == systemUserName);
+
 				if (matchingByUsername != null)
 				{
 					var matchingTagList = matchingByUsername.Tags.Split(',').ToList();
@@ -182,7 +168,7 @@ public class GetFilteredProfiles : IGQIDataSource, IGQIOnInit, IGQIInputArgument
 		return rows;
 	}
 
-	private List<string> MatchingTagsByGroup(List<DomInstanceValues> valuesList, List<string> groupNames)
+	private List<string> MatchingTagsByGroup(List<GQIUtils.DomInstanceValues> valuesList, List<string> groupNames)
 	{
 		var tagList = new List<string>();
 		foreach (var group in groupNames)

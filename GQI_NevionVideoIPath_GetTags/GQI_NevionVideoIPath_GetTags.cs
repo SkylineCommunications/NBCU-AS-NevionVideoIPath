@@ -1,22 +1,35 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using NevionSharedUtils;
+
 using Skyline.DataMiner.Analytics.GenericInterface;
+using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+using Skyline.DataMiner.Net.Helper;
 using Skyline.DataMiner.Net.Messages;
 
 [GQIMetaData(Name = "Nevion VideoIPath Get Tags")]
 public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInputArguments
 {
-	private GQIDMS dms;
+	private GQIStringDropdownArgument typeArgument = new GQIStringDropdownArgument("Type", new[] { "Source", "Destination" }) { IsRequired = true };
+	private string type;
 
-	private GQIIntArgument typeArgument = new GQIIntArgument("Type") { IsRequired = true };
-	private Type type;
+	private GQIStringArgument nevionElementNameArgument = new GQIStringArgument("Element Name") { IsRequired = false };
+	private string elementName;
 
-	private GQIStringArgument profileArgument = new GQIStringArgument("Profile") { IsRequired = false };
-	private string profile;
+	private IGQILogger _logger;
 
-	private int dataminerId;
-	private int elementId;
+	private GQIDMS _dms;
+	private DomHelper domHelper;
+
+	public OnInitOutputArgs OnInit(OnInitInputArgs args)
+	{
+		_dms = args.DMS;
+		_logger = args.Logger;
+		domHelper = new DomHelper(_dms.SendMessages, DomIds.Lca_Access.ModuleId);
+		return new OnInitOutputArgs();
+	}
 
 	private enum Type
 	{
@@ -34,27 +47,19 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 
 	public GQIArgument[] GetInputArguments()
 	{
-		return new GQIArgument[] { typeArgument, profileArgument };
+		return new GQIArgument[] { typeArgument, nevionElementNameArgument };
 	}
 
 	public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
 	{
-		type = (Type)args.GetArgumentValue(typeArgument);
-		profile = Convert.ToString(args.GetArgumentValue(profileArgument));
+		type = args.GetArgumentValue(typeArgument);
+		elementName = Convert.ToString(args.GetArgumentValue(nevionElementNameArgument));
 		return new OnArgumentsProcessedOutputArgs();
 	}
 
 	public GQIPage GetNextPage(GetNextPageInputArgs args)
 	{
-		var profileTagsFilter = GetTagsForProfile();
-		var tags = GetTags(profileTagsFilter);
-
-		var rows = new List<GQIRow>();
-		foreach (var tag in tags.OrderBy(t => t))
-		{
-			var row = new GQIRow(new GQICell[] { new GQICell() { Value = tag } });
-			rows.Add(row);
-		}
+		List<GQIRow> rows = GetRows();
 
 		return new GQIPage(rows.ToArray())
 		{
@@ -62,162 +67,147 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 		};
 	}
 
-	public OnInitOutputArgs OnInit(OnInitInputArgs args)
+	private List<GQIRow> GetRows()
 	{
-		dms = args.DMS;
-		GetNevionVideoIPathElement();
-
-		return new OnInitOutputArgs();
-	}
-
-	private void GetNevionVideoIPathElement()
-	{
-		dataminerId = -1;
-		elementId = -1;
-
-		var infoMessage = new GetInfoMessage { Type = InfoType.ElementInfo };
-		var infoMessageResponses = dms.SendMessages(infoMessage);
-		foreach (var response in infoMessageResponses)
+		var valuesList = GQIUtils.GetDOMPermissions(domHelper, type);
+		if (valuesList.Count == 0)
 		{
-			var elementInfoEventMessage = (ElementInfoEventMessage)response;
-			if (elementInfoEventMessage == null)
-			{
-				continue;
-			}
-
-			if (elementInfoEventMessage?.Protocol == "Nevion Video iPath" && elementInfoEventMessage?.ProtocolVersion == "Production")
-			{
-				dataminerId = elementInfoEventMessage.DataMinerID;
-				elementId = elementInfoEventMessage.ElementID;
-				break;
-			}
-		}
-	}
-
-	private HashSet<string> GetTagsForProfile()
-	{
-		var columns = GetProfilesTableColumns();
-		if (!columns.Any())
-		{
-			return new HashSet<string>();
+			return new List<GQIRow>();
 		}
 
-		var profileTags = new HashSet<string>();
-
-		for (int i = 0; i < columns[1].ArrayValue.Length; i++)
+		var nevionElementRequest = new GetLiteElementInfo
 		{
-			var profileNameCell = columns[1].ArrayValue[i];
-			if (profileNameCell.IsEmpty)
-			{
-				continue;
-			}
+			NameFilter = elementName,
+			ProtocolVersion = "Production",
+		};
 
-			var profileName = profileNameCell.CellValue.StringValue;
-			if (profileName != profile)
-			{
-				continue;
-			}
+		var nevionResponse = _dms.SendMessage(nevionElementRequest) as LiteElementInfoEvent;
 
-			var profileTagsCell = columns[3].ArrayValue[i];
-			if (profileTagsCell.IsEmpty)
-			{
-				break;
-			}
+		if (nevionResponse == null)
+		{
+			return new List<GQIRow>();
+		}
 
-			var valueTags = profileTagsCell.CellValue.StringValue.Split(',');
-			foreach (var valueTag in valueTags)
+		var responses = _dms.SendMessages(new GetUserFullNameMessage(), new GetInfoMessage(InfoType.SecurityInfo));
+		var systemUserName = responses?.OfType<GetUserFullNameResponseMessage>().FirstOrDefault()?.User.Trim();
+		var matchingByUsername = valuesList.FirstOrDefault(instance => instance.Username == systemUserName);
+
+		if (matchingByUsername != null)
+		{
+			var matchingTagList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new List<string>() : matchingByUsername.Tags.Split(',').ToList();
+			return AddRows(nevionResponse, matchingTagList);
+		}
+
+		// Group Data
+		var securityResponse = responses?.OfType<GetUserInfoResponseMessage>().FirstOrDefault();
+
+		var groupNames = securityResponse.FindGroupNamesByUserName(systemUserName).ToList();
+
+		if (matchingByUsername == null && groupNames.Count > 0)
+		{
+			var matchingTagsByGroup = MatchingTagsByGroup(valuesList, groupNames);
+			return AddRows(nevionResponse, matchingTagsByGroup);
+		}
+
+		return new List<GQIRow>();
+	}
+
+	private List<string> GetTagsByType(LiteElementInfoEvent nevionResponse)
+	{
+		var tablePid = type == "Source" ? 1300 : 1400;
+		var nevionTable = GQIUtils.GetTable(_dms, nevionResponse, tablePid, new[] { "forceFullTable=true" });
+
+		var tagsList = new List<string>();
+		for (int i = 0; i < nevionTable.Length; i++)
+		{
+			var row = nevionTable[i];
+
+			var tag = Convert.ToString(row[3]);
+
+			if (!tag.IsNullOrEmpty())
 			{
-				if (String.IsNullOrEmpty(valueTag))
+				var tags = tag.Split(',').ToList();
+
+				if (tags.Any())
 				{
-					continue;
+					tagsList.AddRange(tags.Select(x => x.Trim()));
 				}
-
-				profileTags.Add(valueTag.Trim());
 			}
-
-			break;
 		}
 
-		return profileTags;
+		tagsList = tagsList.Distinct().ToList();
+
+		return tagsList;
 	}
 
-	private ParameterValue[] GetProfilesTableColumns()
+	private List<string> MatchingTagsByGroup(List<GQIUtils.DomInstanceValues> valuesList, List<string> groupNames)
 	{
-		var tableId = 2400;
-		var getPartialTableMessage = new GetPartialTableMessage(dataminerId, elementId, tableId, new[] { "forceFullTable=true" });
-		var parameterChangeEventMessage = (ParameterChangeEventMessage)dms.SendMessage(getPartialTableMessage);
-		if (parameterChangeEventMessage.NewValue?.ArrayValue == null)
+		var tagList = new List<string>();
+		foreach (var group in groupNames)
 		{
-			return new ParameterValue[0];
-		}
-
-		var columns = parameterChangeEventMessage.NewValue.ArrayValue;
-		if (columns.Length < 4)
-		{
-			return new ParameterValue[0];
-		}
-
-		return columns;
-	}
-
-	private HashSet<string> GetTags(HashSet<string> profileTagsFilter)
-	{
-		var columns = GetTagsTableColumns();
-		if (!columns.Any())
-		{
-			return new HashSet<string>();
-		}
-
-		var tags = new HashSet<string>();
-
-		foreach (var tagsCell in columns[3].ArrayValue)
-		{
-			if (tagsCell.IsEmpty)
+			var matchingGroup = valuesList.FirstOrDefault(x => x.Group == group);
+			if (matchingGroup != null)
 			{
-				continue;
-			}
-
-			if (String.IsNullOrEmpty(tagsCell.CellValue.StringValue))
-			{
-				continue;
-			}
-
-			var valueTags = tagsCell.CellValue.StringValue.Split(',');
-			foreach (var valueTag in valueTags)
-			{
-				if (String.IsNullOrEmpty(valueTag))
+				if (!matchingGroup.Tags.IsNullOrEmpty())
 				{
-					continue;
+					var domTags = matchingGroup.Tags.Split(',').ToList();
+					tagList.AddRange(domTags);
 				}
-
-				tags.Add(valueTag.Trim());
 			}
 		}
 
-		if (profileTagsFilter != null && profileTagsFilter.Any())
-		{
-			tags.IntersectWith(profileTagsFilter);
-		}
-
-		return tags;
+		return tagList.Distinct().ToList();
 	}
 
-	private ParameterValue[] GetTagsTableColumns()
+	private List<GQIRow> AddRows(LiteElementInfoEvent nevionResponse, List<string> matchingTagsList)
 	{
-		var tableId = type == Type.Source ? 1300 : 1400;
-		var getPartialTableMessage = new GetPartialTableMessage(dataminerId, elementId, tableId, new[] { "forceFullTable=true" });
-		var parameterChangeEventMessage = (ParameterChangeEventMessage)dms.SendMessage(getPartialTableMessage);
-		if (parameterChangeEventMessage.NewValue?.ArrayValue == null)
+		if (nevionResponse.State != ElementState.Active)
 		{
-			return new ParameterValue[0];
+			return new List<GQIRow>();
 		}
 
-		var columns = parameterChangeEventMessage.NewValue.ArrayValue;
-		if (columns.Length < 4)
+		if (matchingTagsList == null || !matchingTagsList.Any())
 		{
-			return new ParameterValue[0];
+			return new List<GQIRow>();
 		}
 
-		return columns;
+		var tags = GetTagsByType(nevionResponse);
+
+		var rows = new List<GQIRow>();
+		if (matchingTagsList.Contains("ALL"))
+		{
+			foreach (var tag in tags.Distinct())
+			{
+				var cells = new[]
+				{
+					new GQICell { Value = tag.Trim() }, // Tags
+				};
+
+				var row = new GQIRow(cells);
+
+				rows.Add(row);
+			}
+
+			return rows;
+		}
+
+		var matchingTags = tags.Where(tag => matchingTagsList.Contains(tag.Trim()));
+		if (matchingTags.Any())
+		{
+			foreach (var tag in matchingTags.Distinct())
+			{
+				var cells = new[]
+				{
+					new GQICell { Value = tag.Trim() }, // Tags
+				};
+
+				var row = new GQIRow(cells);
+				rows.Add(row);
+			}
+
+			return rows;
+		}
+
+		return new List<GQIRow>();
 	}
 }

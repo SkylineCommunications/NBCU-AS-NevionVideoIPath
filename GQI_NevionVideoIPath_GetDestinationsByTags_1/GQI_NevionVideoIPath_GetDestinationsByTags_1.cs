@@ -1,22 +1,37 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+
+using NevionSharedUtils;
+
 using Skyline.DataMiner.Analytics.GenericInterface;
+using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 using Skyline.DataMiner.Net.Messages;
 
 [GQIMetaData(Name = "Nevion VideoIPath Get Destinations By Tags")]
 public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOnInit, IGQIInputArguments
 {
-	private GQIDMS dms;
+	private readonly GQIStringArgument sourceTagsArgument = new GQIStringArgument("Source Tags") { IsRequired = false };
 
-	private GQIStringArgument profileArgument = new GQIStringArgument("Profile") { IsRequired = false };
 	private string profile;
+	private string sourceTags;
 
-	private GQIStringArgument tagArgument = new GQIStringArgument("Tags") { IsRequired = false };
-	private string tag;
-
+	private GQIDMS dms;
 	private int dataminerId;
 	private int elementId;
+
+	private IGQILogger _logger;
+	private DomHelper domHelper;
+
+	public OnInitOutputArgs OnInit(OnInitInputArgs args)
+	{
+		dms = args.DMS;
+		domHelper = new DomHelper(dms.SendMessages, DomIds.Lca_Access.ModuleId);
+		_logger = args.Logger;
+		GetNevionVideoIPathElement();
+
+		return new OnInitOutputArgs();
+	}
 
 	public GQIColumn[] GetColumns()
 	{
@@ -32,13 +47,12 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 
 	public GQIArgument[] GetInputArguments()
 	{
-		return new GQIArgument[] { profileArgument, tagArgument };
+		return new GQIArgument[] { sourceTagsArgument };
 	}
 
 	public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
 	{
-		profile = args.GetArgumentValue<string>(profileArgument);
-		tag = args.GetArgumentValue<string>(tagArgument);
+		sourceTags = args.GetArgumentValue<string>(sourceTagsArgument);
 		return new OnArgumentsProcessedOutputArgs();
 	}
 
@@ -52,20 +66,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 			};
 		}
 
-		List<GQIRow> rows;
-		if (!String.IsNullOrEmpty(tag))
-		{
-			rows = GetDestinationByTagRows(tag);
-		}
-		else if (!String.IsNullOrEmpty(profile))
-		{
-			var tagFilter = GetTagsForProfile();
-			rows = GetDestinationByTagRows(tagFilter.ToArray());
-		}
-		else
-		{
-			rows = GetDestinationByTagRows();
-		}
+		List<GQIRow> rows = GetRows();
 
 		return new GQIPage(rows.ToArray())
 		{
@@ -73,12 +74,43 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		};
 	}
 
-	public OnInitOutputArgs OnInit(OnInitInputArgs args)
+	private List<GQIRow> GetRows()
 	{
-		dms = args.DMS;
-		GetNevionVideoIPathElement();
+		var permissionList = GQIUtils.GetDOMPermissions(domHelper, "Destination");
+		var rows = new List<GQIRow>();
+		if (permissionList.Count == 0)
+		{
+			return rows;
+		}
 
-		return new OnInitOutputArgs();
+		var responses = dms.SendMessages(new GetUserFullNameMessage(), new GetInfoMessage(InfoType.SecurityInfo));
+		var systemUserName = responses?.OfType<GetUserFullNameResponseMessage>().FirstOrDefault()?.User.Trim();
+		var matchingByUsername = permissionList.FirstOrDefault(instance => instance.Username == systemUserName);
+
+		var matchingTagList = new HashSet<string>();
+		var matchingDestinationList = new HashSet<string>();
+		if (matchingByUsername != null)
+		{
+			matchingTagList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new HashSet<string>() : matchingByUsername.Tags.Split(',').ToHashSet();
+			matchingDestinationList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new HashSet<string>() : matchingByUsername.Destinations.Split(',').ToHashSet();
+		}
+
+		// Group Data
+		var securityResponse = responses?.OfType<GetUserInfoResponseMessage>().FirstOrDefault();
+
+		var groupNames = securityResponse.FindGroupNamesByUserName(systemUserName).ToList();
+		if (matchingByUsername == null && groupNames.Count > 0)
+		{
+			matchingTagList = GQIUtils.MatchingValuesByGroup(permissionList, groupNames, x => x.Tags).ToHashSet();
+			matchingDestinationList = GQIUtils.MatchingValuesByGroup(permissionList, groupNames, x => x.Destinations).ToHashSet();
+		}
+
+		if (!matchingTagList.Any() && !matchingDestinationList.Any())
+		{
+			return rows;
+		}
+
+		return GetDestinationByTagRows(matchingTagList, matchingDestinationList);
 	}
 
 	private void GetNevionVideoIPathElement()
@@ -105,73 +137,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		}
 	}
 
-	private HashSet<string> GetTagsForProfile()
-	{
-		var columns = GetProfilesTableColumns();
-		if (!columns.Any())
-		{
-			return new HashSet<string>();
-		}
-
-		var profileTags = new HashSet<string>();
-
-		for (int i = 0; i < columns[1].ArrayValue.Length; i++)
-		{
-			var profileNameCell = columns[1].ArrayValue[i];
-			if (profileNameCell.IsEmpty)
-			{
-				continue;
-			}
-
-			var profileName = profileNameCell.CellValue.StringValue;
-			if (profileName != profile)
-			{
-				continue;
-			}
-
-			var profileTagsCell = columns[3].ArrayValue[i];
-			if (profileTagsCell.IsEmpty)
-			{
-				break;
-			}
-
-			var valueTags = profileTagsCell.CellValue.StringValue.Split(',');
-			foreach (var valueTag in valueTags)
-			{
-				if (String.IsNullOrEmpty(valueTag))
-				{
-					continue;
-				}
-
-				profileTags.Add(valueTag.Trim());
-			}
-
-			break;
-		}
-
-		return profileTags;
-	}
-
-	private ParameterValue[] GetProfilesTableColumns()
-	{
-		var tableId = 2400;
-		var getPartialTableMessage = new GetPartialTableMessage(dataminerId, elementId, tableId, new[] { "forceFullTable=true" });
-		var parameterChangeEventMessage = (ParameterChangeEventMessage)dms.SendMessage(getPartialTableMessage);
-		if (parameterChangeEventMessage.NewValue?.ArrayValue == null)
-		{
-			return new ParameterValue[0];
-		}
-
-		var columns = parameterChangeEventMessage.NewValue.ArrayValue;
-		if (columns.Length < 4)
-		{
-			return new ParameterValue[0];
-		}
-
-		return columns;
-	}
-
-	private List<GQIRow> GetDestinationByTagRows(params string[] tagFilter)
+	private List<GQIRow> GetDestinationByTagRows(HashSet<string> tagFilter, HashSet<string> allowedDestinations)
 	{
 		var columns = GetDestinationTableColumns();
 		if (!columns.Any())
@@ -181,7 +147,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 
 		var destinationIdSourceNameRelations = GetCurrentServicesDestinationIdToSourceNameRelationDictionary();
 
-		return ProcessDestinationByTagTable(columns, destinationIdSourceNameRelations, tagFilter);
+		return ProcessDestinationByTagTable(columns, destinationIdSourceNameRelations, tagFilter, allowedDestinations);
 	}
 
 	private ParameterValue[] GetDestinationTableColumns()
@@ -202,9 +168,13 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		return columns;
 	}
 
-	private List<GQIRow> ProcessDestinationByTagTable(ParameterValue[] columns, Dictionary<string, string> destinationIdToSourceNameRelations, params string[] tagFilter)
+	private List<GQIRow> ProcessDestinationByTagTable(ParameterValue[] columns, Dictionary<string, string> destinationIdToSourceNameRelations, HashSet<string> tagFilter, HashSet<string> allowedDestinations)
 	{
 		var rows = new List<GQIRow>();
+		bool allDestinations = allowedDestinations.Count == 1 && allowedDestinations.First().Equals("ALL", StringComparison.OrdinalIgnoreCase);
+		bool filterBySourceTags = !String.IsNullOrWhiteSpace(sourceTags);
+		bool sourceIsSrt = filterBySourceTags && sourceTags.Contains("SRT");
+
 		for (int i = 0; i < columns[0].ArrayValue.Length; i++)
 		{
 			var destinationRow = new DestinationByTagRow(columns, i, destinationIdToSourceNameRelations);
@@ -218,10 +188,33 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 				continue;
 			}
 
+			var destinationTags = destinationRow.Tags ?? Array.Empty<string>();
+			_logger.Information($"{filterBySourceTags} - {sourceIsSrt} - {destinationTags} ");
+			if (filterBySourceTags && IsTagMatchRequired(sourceIsSrt, destinationTags))
+			{
+				continue;
+			}
+
+			if (!allDestinations && !allowedDestinations.Contains(destinationRow.DescriptorLabel))
+			{
+				continue;
+			}
+
 			rows.Add(destinationRow.ToGqiRow());
 		}
 
 		return rows;
+	}
+
+	private static bool IsTagMatchRequired(bool sourceIsSrt, IReadOnlyCollection<string> destinationTags)
+	{
+		if (destinationTags == null)
+		{
+			return false;
+		}
+
+		bool destinationIsSrt = destinationTags.Any(x => x.Contains("SRT"));
+		return (sourceIsSrt && !destinationIsSrt) || (!sourceIsSrt && destinationIsSrt);
 	}
 
 	private Dictionary<string, string> GetCurrentServicesDestinationIdToSourceNameRelationDictionary()
@@ -279,7 +272,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 
 public class DestinationByTagRow
 {
-	public DestinationByTagRow(ParameterValue[] columns, int row, Dictionary<string,string> destinationIdToSourceNameRelations)
+	public DestinationByTagRow(ParameterValue[] columns, int row, Dictionary<string, string> destinationIdToSourceNameRelations)
 	{
 		var nameCell = columns[0].ArrayValue[row];
 		Name = !nameCell.IsEmpty ? nameCell.CellValue.StringValue : String.Empty;
@@ -305,7 +298,7 @@ public class DestinationByTagRow
 		var fDescriptorLabelCell = columns[5].ArrayValue[row];
 		FDescriptorLabel = !fDescriptorLabelCell.IsEmpty ? fDescriptorLabelCell.CellValue.StringValue : String.Empty;
 
-		ConnectedSource = destinationIdToSourceNameRelations.TryGetValue(Id, out string sourceName)? sourceName : string.Empty;
+		ConnectedSource = destinationIdToSourceNameRelations.TryGetValue(Id, out string sourceName) ? sourceName : string.Empty;
 	}
 
 	public string Name { get; private set; }
@@ -342,9 +335,9 @@ public class DestinationByTagRow
 		return true;
 	}
 
-	public bool MatchesTagFilter(params string[] filter)
+	public bool MatchesTagFilter(HashSet<string> filter)
 	{
-		if (filter == null || !filter.Any())
+		if (filter == null || !filter.Any() || filter.Contains("ALL"))
 		{
 			return true;
 		}

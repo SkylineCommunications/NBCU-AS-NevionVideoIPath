@@ -1,8 +1,16 @@
 ﻿namespace NevionSharedUtils
 {
+	using DomIds;
+	using System.Collections.Generic;
+
 	using Skyline.DataMiner.Analytics.GenericInterface;
+	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Helper;
 	using Skyline.DataMiner.Net.Messages;
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Net.Sections;
+	using System;
+	using System.Linq;
 
 	public class GQIUtils
 	{
@@ -61,6 +69,73 @@
 			}
 
 			return objArray;
+		}
+
+		public static List<DomInstanceValues> GetDOMPermissions(DomHelper domHelper, string tagType)
+		{
+			var instances = domHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(Lca_Access.Definitions.Nevion_Control.Id));
+
+			var tagsFieldDescriptor = tagType == "Source"
+			? Lca_Access.Sections.NevionControl.SourceTags
+			: Lca_Access.Sections.NevionControl.DestinationTags;
+
+			var valuesList = new List<DomInstanceValues>();
+			foreach (var instance in instances)
+			{
+				var username = instance.GetFieldValue<string>(Lca_Access.Sections.BasicInformation.Id, Lca_Access.Sections.BasicInformation.Username)?.Value;
+				var group = instance.GetFieldValue<string>(Lca_Access.Sections.BasicInformation.Id, Lca_Access.Sections.BasicInformation.Group)?.Value;
+				var tags = instance.GetFieldValue<string>(Lca_Access.Sections.NevionControl.Id, tagsFieldDescriptor)?.Value;
+				var destinations = instance.GetFieldValue<string>(Lca_Access.Sections.NevionControl.Id, Lca_Access.Sections.NevionControl.DestinationNames)?.Value;
+
+				valuesList.Add(new DomInstanceValues { Username = username, Group = group, Tags = tags, Destinations = destinations });
+			}
+
+			return valuesList;
+		}
+
+		public static LiteElementInfoEvent GetNevionElement(GQIDMS _dms, string nevionElementId)
+		{
+			var sElementId = nevionElementId.Split('/');
+			var nevionElementRequest = new GetLiteElementInfo
+			{
+				DataMinerID = Convert.ToInt32(sElementId[0]),
+				ElementID = Convert.ToInt32(sElementId[1]),
+			};
+
+			var nevionResponse = _dms.SendMessage(nevionElementRequest) as LiteElementInfoEvent;
+
+			return nevionResponse;
+		}
+
+		public static List<string> MatchingValuesByGroup(List<DomInstanceValues> valuesList, List<string> groupNames, Func<DomInstanceValues, string> selector)
+		{
+			var result = new List<string>();
+
+			foreach (var group in groupNames)
+			{
+				var matchingGroup = valuesList.FirstOrDefault(x => x.Group == group);
+				if (matchingGroup != null)
+				{
+					var rawValue = selector(matchingGroup);
+					if (!string.IsNullOrWhiteSpace(rawValue))
+					{
+						result.AddRange(rawValue.Split(','));
+					}
+				}
+			}
+
+			return result.Distinct().ToList();
+		}
+
+		public class DomInstanceValues
+		{
+			public string Username { get; set; }
+
+			public string Group { get; set; }
+
+			public string Tags { get; set; }
+
+			public string Destinations { get; set; }
 		}
 	}
 }

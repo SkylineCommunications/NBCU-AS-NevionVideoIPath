@@ -67,10 +67,10 @@
       <Version>10.5.4.2</Version>
     </PackageReference>
     <PackageReference Include="Skyline.DataMiner.Utils.SecureCoding">
-      <Version>2.0.4</Version>
+      <Version>2.0.5</Version>
     </PackageReference>
     <PackageReference Include="Skyline.DataMiner.Utils.SecureCoding.Analyzers">
-      <Version>2.0.4</Version>
+      <Version>2.0.5</Version>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
@@ -83,7 +83,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties DisLinkId="1" DisProjectType="automationScriptProject" DisLinkedXmlFile="..\Edit Profiles.xml" />
+      <UserProperties DisLinkedXmlFile="..\Edit Profiles.xml" DisProjectType="automationScriptProject" DisLinkId="1" />
     </VisualStudio>
   </ProjectExtensions>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
