@@ -18,6 +18,8 @@
 	{
 		private readonly IEngine engine;
 
+		private static int ChannelConfigTable = 2100;
+
 		public TagAudioDialog(IEngine engine) : base(engine)
 		{
 			this.engine = engine;
@@ -58,6 +60,10 @@
 
 			var channelPidRows = tagElement.GetTable(2500).GetRows();
 			var audioRowsForChannel = channelPidRows.Where(x => Convert.ToInt32(x[2]) == 2 /*Audio*/ && Convert.ToString(x[29]).Contains(channelName));
+
+			var channelConfigTable = tagElement.GetTable(ChannelConfigTable);
+			var displayKeys = channelConfigTable.GetDisplayKeys();
+			var fullChannelName = displayKeys.FirstOrDefault(x => x.Contains(channelName));
 
 			var audioDisplays = audioRowsForChannel.Select(x =>
 			{
@@ -105,7 +111,7 @@
 				string audioId = match.Groups[1].Value;
 				string pid = match.Groups[2].Value;
 
-				tagEngineElement.SetParameterByPrimaryKey(3356, outputPidKey, channelName);
+				tagEngineElement.SetParameterByPrimaryKey(3356, outputPidKey, fullChannelName);
 				tagEngineElement.SetParameterByPrimaryKey(3357, outputPidKey, audioId);
 				tagEngineElement.SetParameterByPrimaryKey(3358, outputPidKey, pid);
 				tagEngineElement.SetParameterByPrimaryKey(3360, outputPidKey, pid);
