@@ -386,7 +386,7 @@
 		{
 			var visioString = String.Join(
 				";",
-				ProfileName == "Automatic" ? String.Empty : ProfileName,
+				ProfileName,
 				Name,
 				SourceName,
 				String.Join(",", DestinationNames),
