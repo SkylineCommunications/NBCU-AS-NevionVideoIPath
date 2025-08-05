@@ -56,16 +56,27 @@ namespace DisconnectServices_1
 	using System.Linq;
 	using Newtonsoft.Json;
 	using Skyline.DataMiner.Automation;
+	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS;
+	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.InterApp.Messages;
 	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
+	using Skyline.DataMiner.Net.Time;
 
 	/// <summary>
 	/// Represents a DataMiner Automation script.
 	/// </summary>
 	public class Script
 	{
+		private const int NevionCurrentServicesTable = 1500;
+		private const int NevionCurrentServicesDestinationId = 1508;
+		private const int NevionCurrentServicesCancelButton = 1515;
+		private const int NevionCurrentServicesIndexIdx = 0;
+		private const int NevionCurrentServicesDestinationNamesIdx = 3;
+		private const int TagChannelTable = 2100;
+
 		private static string[] primaryKeysCurrentServices = new string[0];
 		private static Element nevionVideoIPathElement;
+		private static Element tagElement;
 
 		/// <summary>
 		/// The script entry point.
@@ -91,10 +102,12 @@ namespace DisconnectServices_1
 					return;
 				}
 
-				primaryKeysCurrentServices = nevionVideoIPathElement.GetTablePrimaryKeys(1500); // Used to check if new connection entries has been added after the ConnectServices.
+				primaryKeysCurrentServices = nevionVideoIPathElement.GetTablePrimaryKeys(NevionCurrentServicesTable); // Used to check if new connection entries has been added after the ConnectServices.
 
-				DisconnectDestinations(engine, destinationIds);
-				VerifyDisconnectService(engine, destinationIds);
+				var disconnectedServices = DisconnectDestinations(engine, destinationIds, out var destinationNames);
+				VerifyDisconnectService(engine, disconnectedServices);
+				DisconnectTAGConnections(engine, destinationNames);
+				VerifyDisconnectChannel(engine, destinationNames);
 			}
 			catch (Exception e)
 			{
@@ -103,39 +116,117 @@ namespace DisconnectServices_1
 			}
 		}
 
-		private static void DisconnectDestinations(IEngine engine, List<string> destinationIds)
+		private static List<string> DisconnectDestinations(IEngine engine, List<string> destinationIds, out List<string> destinationNames)
 		{
 			var nevionVideoIPathElement = engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
+			destinationNames = new List<string>();
 			if (nevionVideoIPathElement == null)
 			{
 				engine.ExitFail("Nevion Video iPath element not found!");
-				return;
+				return new List<string>();
 			}
 
 			if (!nevionVideoIPathElement.IsActive)
 			{
 				engine.ExitFail("Nevion Video iPath element not active!");
-				return;
+				return new List<string>();
 			}
 
 			var dms = engine.GetDms();
 
 			var nevionVideoIPathDmsElement = dms.GetElement(nevionVideoIPathElement.ElementName);
-			var currentServicesTable = nevionVideoIPathDmsElement.GetTable(1500);
+			var currentServicesTable = nevionVideoIPathDmsElement.GetTable(NevionCurrentServicesTable);
 
 			var servicesToCancel = new List<string>();
 			foreach (var destinationId in destinationIds)
 			{
-				var rows = currentServicesTable.QueryData(new[] { new ColumnFilter { Pid = 1508, ComparisonOperator = ComparisonOperator.Equal, Value = destinationId } });
+				var rows = currentServicesTable.QueryData(new[] { new ColumnFilter { Pid = NevionCurrentServicesDestinationId, ComparisonOperator = ComparisonOperator.Equal, Value = destinationId } });
 				if (rows.Any())
 				{
-					servicesToCancel.AddRange(rows.Select(r => Convert.ToString(r[0])));
+					servicesToCancel.AddRange(rows.Select(r => Convert.ToString(r[NevionCurrentServicesIndexIdx])));
+					destinationNames.AddRange(rows.Select(r => Convert.ToString(r[NevionCurrentServicesDestinationNamesIdx])));
 				}
 			}
 
 			foreach (var serviceId in servicesToCancel)
 			{
-				nevionVideoIPathElement.SetParameterByPrimaryKey(1515, serviceId, 1);
+				nevionVideoIPathElement.SetParameterByPrimaryKey(NevionCurrentServicesCancelButton, serviceId, 1);
+			}
+
+			destinationNames = destinationNames.Distinct().ToList();
+			return servicesToCancel;
+		}
+
+		private static void DisconnectTAGConnections(IEngine engine, List<string> destinationNames)
+		{
+			tagElement = engine.FindElement("TAG AWS MCS");
+			if (tagElement == null)
+			{
+				engine.ExitFail("TAG Element not found");
+				return;
+			}
+
+			if (!tagElement.IsActive)
+			{
+				engine.ExitFail("TAG Element not active");
+				return;
+			}
+
+			var channelNames = tagElement.GetTableDisplayKeys(TagChannelTable);
+			var channelsToDisconnect = channelNames.Where(c =>
+			{
+				var arrowIndex = c.IndexOf("->");
+				if (arrowIndex == -1)
+				{
+					return false;
+				}
+
+				var destination = c.Substring(arrowIndex + 2);
+				return destinationNames.Contains(destination);
+			});
+
+			var tagInterAppSender = new TagMCS(engine.GetUserConnection(), tagElement.DmaId, tagElement.ElementId);
+			foreach (var channelName in channelsToDisconnect)
+			{
+				var response = tagInterAppSender.SendMessage(new GetChannelConfigRequest(channelName, MessageIdentifier.Name), TimeSpan.FromMinutes(2));
+				var channelResponse = response as GetChannelConfigResponse;
+				if (channelResponse == null)
+				{
+					var interappResponse = response as InterAppResponse;
+					engine.Log($"Get Channel Message returned failure: {interappResponse.ResponseMessage}");
+					continue;
+				}
+
+				var newChannelName = channelName.Substring(channelName.IndexOf("->") + 2);
+				var channel = channelResponse.Channel;
+				channel.Label = newChannelName;
+
+				var setResponse = tagInterAppSender.SendMessage(new SetChannelConfigRequest { Channel = channel }, TimeSpan.FromMinutes(2)) as InterAppResponse;
+				if (setResponse == null)
+				{
+					engine.Log("No response on Set Channel received");
+					continue;
+				}
+
+				if (!setResponse.Success)
+				{
+					engine.Log($"Set Channel Message returned failure: {setResponse.ResponseMessage}");
+				}
+			}
+		}
+
+		private static void VerifyDisconnectChannel(IEngine engine, List<string> destinationNames)
+		{
+			int retries = 0;
+			var destinationsFound = false;
+			while (!destinationsFound && retries < 100)
+			{
+				engine.Sleep(60);
+
+				var displayKeys = tagElement.GetTableDisplayKeys(TagChannelTable);
+				destinationsFound = destinationNames.All(x => displayKeys.Contains(x));
+
+				retries++;
 			}
 		}
 
@@ -155,18 +246,17 @@ namespace DisconnectServices_1
 			}
 		}
 
-		private static void VerifyDisconnectService(IEngine engine, List<string> destinationNames)
+		private static void VerifyDisconnectService(IEngine engine, List<string> disconnectedServices)
 		{
 			int retries = 0;
 			bool allEntriesFound = false;
-			int tableEntriesExcludingCurrentDestination = primaryKeysCurrentServices.Length - destinationNames.Count;
 			while (!allEntriesFound && retries < 100)
 			{
 				engine.Sleep(60);
 
-				var allPrimaryKeys = nevionVideoIPathElement.GetTablePrimaryKeys(1500);
+				var allPrimaryKeys = nevionVideoIPathElement.GetTablePrimaryKeys(NevionCurrentServicesTable);
 
-				allEntriesFound = allPrimaryKeys.Length == tableEntriesExcludingCurrentDestination;
+				allEntriesFound = allPrimaryKeys.Any(key => disconnectedServices.Contains(key));
 
 				retries++;
 			}
