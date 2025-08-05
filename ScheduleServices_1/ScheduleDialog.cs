@@ -63,6 +63,7 @@
 		private bool skipVIPConnection;
 
 		private static int ChannelConfigTable = 2100;
+		private static int LayoutTable = 3600;
 
 		public ScheduleDialog(IEngine engine) : base(engine)
 		{
@@ -150,22 +151,20 @@
 
 		private void ConnectTagMCS(IEngine engine)
 		{
-			var tagMcsElement = dms.GetElement("TAG AWS QC MCS");
-
-			var destinationName = DestinationNames[0];
-			var layoutName = RemoveBracketPrefix(destinationName);
+			var tagMcsElement = dms.GetElement("TAG AWS MCS");
 
 			// get the correct channel name from tag finding all configuration display keys containing destination name (only should be one)
 			var tagMcs = new TagMCS(engine.GetUserConnection(), tagMcsElement.AgentId, tagMcsElement.Id);
 
-			var layoutRequest = new SetChannelInLayoutRequest(layoutName, destinationName, 1, MessageIdentifier.Name);
-			tagMcs.SendMessage(layoutRequest, TimeSpan.FromSeconds(10));
+			var destinationName = DestinationNames[0];
+			var layoutName = RemoveBracketPrefix(destinationName);
+
+			var newChannelName = $"{SourceName}->{DestinationNames[0]}";
 
 			var channelConfigTable = tagMcsElement.GetTable(ChannelConfigTable);
 			var displayKeys = channelConfigTable.GetDisplayKeys();
 			var matchingDisplayKey = displayKeys.FirstOrDefault(x => x.Contains(destinationName));
 			var primaryKeyForChannel = channelConfigTable.GetPrimaryKey(matchingDisplayKey);
-			var newChannelName = $"{SourceName}->{DestinationNames[0]}";
 
 			var errorBuilder = new StringBuilder();
 			ChangeChannelLabelRequest(tagMcs, errorBuilder, primaryKeyForChannel, newChannelName);
@@ -175,12 +174,19 @@
 				ErrorMessageDialog.ShowMessage(engine, errorBuilder.ToString());
 			}
 
+			var layoutTable = tagMcsElement.GetTable(LayoutTable);
+			var layoutKeys = layoutTable.GetDisplayKeys();
+			var matchingLayout = layoutKeys.FirstOrDefault(x => x.Contains(layoutName));
+			var primaryKeyForLayout = layoutTable.GetPrimaryKey(matchingLayout);
+
+			var layoutRequest = new SetChannelInLayoutRequest(primaryKeyForLayout, primaryKeyForChannel, 1, MessageIdentifier.ID);
+			tagMcs.SendMessage(layoutRequest, TimeSpan.FromSeconds(10));
+
 			// var layoutType = tagMcsElement.GetTable(3600).GetColumn<string>(3604).GetDisplayValue(destinationName, Skyline.DataMiner.Core.DataMinerSystem.Common.KeyType.DisplayKey);
 			// if (layoutType != "QC Channel_v1")
 			// {
 			// 	engine.ExitFail("MCS Layout is not the correct type");
 			// }
-
 		}
 
 		private void ChangeChannelLabelRequest(TagMCS interAppTagMcs, StringBuilder errorBuilder, string channelId, string newChannelLabel)
