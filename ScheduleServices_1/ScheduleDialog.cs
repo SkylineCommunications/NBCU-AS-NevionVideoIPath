@@ -15,6 +15,7 @@
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.InterApp.Messages;
 	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
 	using static NevionSharedUtils.NevionIds;
@@ -151,73 +152,120 @@
 
 		private void ConnectTagMCS(IEngine engine)
 		{
-			var tagMcsElement = dms.GetElement("TAG AWS MCS");
-
-			// get the correct channel name from tag finding all configuration display keys containing destination name (only should be one)
-			var tagMcs = new TagMCS(engine.GetUserConnection(), tagMcsElement.AgentId, tagMcsElement.Id);
-
-			var destinationName = DestinationNames[0];
-			var layoutName = RemoveBracketPrefix(destinationName);
-
-			var newChannelName = $"{SourceName}->{DestinationNames[0]}";
-
-			var channelConfigTable = tagMcsElement.GetTable(ChannelConfigTable);
-			var displayKeys = channelConfigTable.GetDisplayKeys();
-			var matchingDisplayKey = displayKeys.FirstOrDefault(x => x.Contains(destinationName));
-			var primaryKeyForChannel = channelConfigTable.GetPrimaryKey(matchingDisplayKey);
-
-			var errorBuilder = new StringBuilder();
-			ChangeChannelLabelRequest(tagMcs, errorBuilder, primaryKeyForChannel, newChannelName);
-
-			if (errorBuilder.Length != 0)
+			try
 			{
-				ErrorMessageDialog.ShowMessage(engine, errorBuilder.ToString());
+				var tagMcsElement = dms.GetElement("TAG AWS MCS");
+
+				// get the correct channel name from tag finding all configuration display keys containing destination name (only should be one)
+				var tagMcs = new TagMCS(engine.GetUserConnection(), tagMcsElement.AgentId, tagMcsElement.Id);
+
+				var destinationName = DestinationNames[0];
+				var layoutName = RemoveBracketPrefix(destinationName);
+
+				var newChannelName = $"{SourceName}->{DestinationNames[0]}";
+
+				string channelId = GetIdFromName(tagMcsElement, ChannelConfigTable, destinationName);
+
+				var errorBuilder = new StringBuilder();
+				ChangeChannelLabelRequest(tagMcs, errorBuilder, channelId, newChannelName);
+
+				string layoutId = GetIdFromName(tagMcsElement, LayoutTable, layoutName);
+
+				var getLayoutRequest = new GetLayoutConfigRequest(layoutId, MessageIdentifier.ID);
+				var layoutResponse = tagMcs.SendMessage(getLayoutRequest, TimeSpan.FromSeconds(30)) as GetLayoutConfigResponse;
+
+				UpdateLayout(tagMcs, 1, layoutResponse, channelId, errorBuilder);
+
+				if (errorBuilder.Length != 0)
+				{
+					ErrorMessageDialog.ShowMessage(engine, errorBuilder.ToString());
+				}
 			}
+			catch (Exception e)
+			{
+				ErrorMessageDialog.ShowMessage(engine, $"Nevion connection made, but there was a script exception while updating TAG. Please contact Skyline: {e}");
+				Engine.Log($"ConnectTagMCS|Failed to update TAG: {e}");
+			}
+		}
 
-			var layoutTable = tagMcsElement.GetTable(LayoutTable);
+		private static string GetIdFromName(IDmsElement tagMcsElement, int tableId, string name)
+		{
+			var layoutTable = tagMcsElement.GetTable(tableId);
 			var layoutKeys = layoutTable.GetDisplayKeys();
-			var matchingLayout = layoutKeys.FirstOrDefault(x => x.Contains(layoutName));
-			var primaryKeyForLayout = layoutTable.GetPrimaryKey(matchingLayout);
-
-			var layoutRequest = new SetChannelInLayoutRequest(primaryKeyForLayout, primaryKeyForChannel, 1, MessageIdentifier.ID);
-			tagMcs.SendMessage(layoutRequest, TimeSpan.FromSeconds(10));
-
-			// var layoutType = tagMcsElement.GetTable(3600).GetColumn<string>(3604).GetDisplayValue(destinationName, Skyline.DataMiner.Core.DataMinerSystem.Common.KeyType.DisplayKey);
-			// if (layoutType != "QC Channel_v1")
-			// {
-			// 	engine.ExitFail("MCS Layout is not the correct type");
-			// }
+			var matchingLayout = layoutKeys.FirstOrDefault(x => x.Contains(name));
+			var layoutId = layoutTable.GetPrimaryKey(matchingLayout);
+			return layoutId;
 		}
 
 		private void ChangeChannelLabelRequest(TagMCS interAppTagMcs, StringBuilder errorBuilder, string channelId, string newChannelLabel)
 		{
-			var getChannelConfig = new GetChannelConfigRequest(channelId, MessageIdentifier.ID);
-			var response = interAppTagMcs.SendMessage(getChannelConfig, TimeSpan.FromSeconds(30)) as GetChannelConfigResponse;
-
-			if (response == null)
+			try
 			{
-				errorBuilder.AppendLine($"Unable to update label for channel with ID {channelId}.");
-				return;
-			}
+				var getChannelConfig = new GetChannelConfigRequest(channelId, MessageIdentifier.ID);
+				var response = interAppTagMcs.SendMessage(getChannelConfig, TimeSpan.FromSeconds(30)) as GetChannelConfigResponse;
 
-			if (response.Success)
-			{
-				response.Channel.Label = newChannelLabel;
-				var setMessage = new SetChannelConfigRequest
+				if (response == null)
 				{
-					Channel = response.Channel,
+					errorBuilder.AppendLine($"Unable to update label for channel with ID {channelId}.");
+					return;
+				}
+
+				if (response.Success)
+				{
+					response.Channel.Label = newChannelLabel;
+					var setMessage = new SetChannelConfigRequest
+					{
+						Channel = response.Channel,
+					};
+
+					var setResponse = interAppTagMcs.SendMessage(setMessage, TimeSpan.FromSeconds(30)) as InterAppResponse;
+
+					if (!setResponse.Success)
+					{
+						errorBuilder.AppendLine($"Unable to update label for channel with ID {channelId}.");
+					}
+				}
+				else
+				{
+					errorBuilder.AppendLine($"Failed to retrieve the channel from TAG: {response.ResponseMessage}");
+				}
+			}
+			catch (Exception e)
+			{
+				errorBuilder.AppendLine($"Script exception while changing the channel label. Please contact Skyline: {e}");
+				Engine.Log($"ChangeChannelLabelRequest|Failed to update TAG Layout: {e}");
+			}
+		}
+
+		private void UpdateLayout(TagMCS interAppTagMcs, int position, GetLayoutConfigResponse layoutResponse, string channelId, StringBuilder errorBuilder)
+		{
+			try
+			{
+				var matchingIndex = layoutResponse.Layout.Tiles.FindIndex(x => x.Index == position);
+
+				if (matchingIndex != -1)
+				{
+					layoutResponse.Layout.Tiles[matchingIndex].Channel = channelId;
+				}
+
+				layoutResponse.Layout.LayoutType = "TAG QC";
+
+				var setMessage = new SetLayoutConfigRequest
+				{
+					Layout = layoutResponse.Layout,
 				};
 
-				var setResponse = interAppTagMcs.SendMessage(setMessage, TimeSpan.FromSeconds(30)) as InterAppResponse;
+				var setResponse = interAppTagMcs.SendMessage(setMessage, TimeSpan.FromMinutes(2)) as InterAppResponse;
 
 				if (!setResponse.Success)
 				{
-					errorBuilder.AppendLine($"Unable to update label for channel with ID {channelId}.");
+					errorBuilder.AppendLine($"Updating the layout with channel failed : {setResponse.ResponseMessage}.");
 				}
 			}
-			else
+			catch (Exception e)
 			{
-				errorBuilder.AppendLine(response.ResponseMessage);
+				errorBuilder.AppendLine($"Script exception while updating the TAG layout. Please contact Skyline: {e}");
+				Engine.Log($"UpdateLayout|Failed to update TAG Layout: {e}");
 			}
 		}
 
