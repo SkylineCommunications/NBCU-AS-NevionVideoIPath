@@ -83,12 +83,10 @@ namespace TAG_SelectTAGAudio_1
 
 			try
 			{
-				var channelName = NevionUtils.GetOneDeserializedValue(engine.GetScriptParam("Channel Name").Value);
-
 				var controller = new InteractiveController(engine);
-				var dialog = new TagAudioDialog(engine);
 
-				dialog.Initialize("TAG AWS QC MCS", channelName);
+				var dialog = new TagAudioDialog(engine, "TAG AWS MCS");
+				dialog.Initialize();
 				dialog.CancelButton.Pressed += (sender, args) => engine.ExitSuccess("Changed Audio Canceled by User");
 
 				controller.ShowDialog(dialog);

@@ -168,7 +168,7 @@ public class GetFilteredProfiles : IGQIDataSource, IGQIOnInit, IGQIInputArgument
 		return rows;
 	}
 
-	private List<string> MatchingTagsByGroup(List<GQIUtils.DomInstanceValues> valuesList, List<string> groupNames)
+	private List<string> MatchingTagsByGroup(List<GQIUtils.NevionProfileDomValues> valuesList, List<string> groupNames)
 	{
 		var tagList = new List<string>();
 		foreach (var group in groupNames)

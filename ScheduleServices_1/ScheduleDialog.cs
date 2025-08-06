@@ -10,6 +10,8 @@
 
 	using NevionCommon_1;
 
+	using NevionSharedUtils;
+
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.InterApp.Messages;
@@ -62,9 +64,6 @@
 		private List<string> destinationNames;
 		private string[] primaryKeysCurrentServices = new string[0];
 		private bool skipVIPConnection;
-
-		private static int ChannelConfigTable = 2100;
-		private static int LayoutTable = 3600;
 
 		public ScheduleDialog(IEngine engine) : base(engine)
 		{
@@ -137,7 +136,7 @@
 					return !areKeysInTable;
 				}
 
-				if (NevionUtils.Retry(CheckKeysDeleted, TimeSpan.FromSeconds(30)))
+				if (Utils.Retry(CheckKeysDeleted, TimeSpan.FromSeconds(30)))
 				{
 					return true;
 				}
@@ -160,16 +159,16 @@
 				var tagMcs = new TagMCS(engine.GetUserConnection(), tagMcsElement.AgentId, tagMcsElement.Id);
 
 				var destinationName = DestinationNames[0];
-				var layoutName = RemoveBracketPrefix(destinationName);
+				var layoutName = Utils.RemoveBracketPrefix(destinationName);
 
 				var newChannelName = $"{SourceName}->{DestinationNames[0]}";
 
-				string channelId = GetIdFromName(tagMcsElement, ChannelConfigTable, destinationName);
+				string channelId = GetIdFromName(tagMcsElement, TAGMCSIds.ChannelConfigTable.TablePid, destinationName);
 
 				var errorBuilder = new StringBuilder();
 				ChangeChannelLabelRequest(tagMcs, errorBuilder, channelId, newChannelName);
 
-				string layoutId = GetIdFromName(tagMcsElement, LayoutTable, layoutName);
+				string layoutId = GetIdFromName(tagMcsElement, TAGMCSIds.LayoutTable.TablePid, layoutName);
 
 				var getLayoutRequest = new GetLayoutConfigRequest(layoutId, MessageIdentifier.ID);
 				var layoutResponse = tagMcs.SendMessage(getLayoutRequest, TimeSpan.FromSeconds(30)) as GetLayoutConfigResponse;
@@ -268,23 +267,6 @@
 				Engine.Log($"UpdateLayout|Failed to update TAG Layout: {e}");
 			}
 		}
-
-		public static string RemoveBracketPrefix(string input)
-		{
-			if (String.IsNullOrWhiteSpace(input))
-			{
-				return input;
-			}
-
-			int closingBracketIndex = input.IndexOf(']');
-			if (input.StartsWith("[") && closingBracketIndex != -1)
-			{
-				return input.Substring(closingBracketIndex + 1).TrimStart();
-			}
-
-			return input;
-		}
-
 		public string SourceName
 		{
 			get

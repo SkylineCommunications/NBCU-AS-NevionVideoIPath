@@ -51,7 +51,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS">
-      <Version>1.0.1-omicron</Version>
+      <Version>1.0.1-prerelease5</Version>
     </PackageReference>
     <PackageReference Include="Skyline.DataMiner.Core.DataMinerSystem.Automation">
       <Version>1.1.2.1</Version>

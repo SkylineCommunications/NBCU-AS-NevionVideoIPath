@@ -45,4 +45,45 @@
 			}
 		}
 	}
+
+	public class InformationMessageDialog : Dialog
+	{
+		public InformationMessageDialog(IEngine engine, string message) : base(engine)
+		{
+			// Set title
+			Title = "Info";
+
+			// Init widgets
+			Label = new Label(message);
+
+			// Define layout
+			AddWidget(Label, 0, 0);
+			AddWidget(OkButton, 1, 0);
+		}
+
+		public Button OkButton { get; } = new Button("OK") { Width = 100 };
+
+		private Label Label { get; set; }
+
+		public static void ShowMessage(IEngine engine, string message)
+		{
+			try
+			{
+				var dialog = new InformationMessageDialog(engine, message);
+
+				dialog.OkButton.Pressed += (sender, args) => engine.ExitSuccess("Close");
+
+				var controller = new InteractiveController(engine);
+				controller.ShowDialog(dialog);
+			}
+			catch (ScriptAbortException)
+			{
+				// ignore abort
+			}
+			catch (Exception e)
+			{
+				engine.ExitFail("Something went wrong: " + e);
+			}
+		}
+	}
 }

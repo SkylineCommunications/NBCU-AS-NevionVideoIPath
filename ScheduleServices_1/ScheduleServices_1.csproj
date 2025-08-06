@@ -89,11 +89,10 @@
       <Name>NevionCommon_1</Name>
     </ProjectReference>
   </ItemGroup>
-  <Import Project="..\NevionSharedUtils\NevionSharedUtils.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties DisLinkId="1" DisProjectType="automationScriptProject" DisLinkedXmlFile="..\ScheduleServices.xml" />
+      <UserProperties DisLinkedXmlFile="..\ScheduleServices.xml" DisProjectType="automationScriptProject" DisLinkId="1" />
     </VisualStudio>
   </ProjectExtensions>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

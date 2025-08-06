@@ -14,9 +14,6 @@
 	</Memory>
 
 	<Parameters>
-		<ScriptParameter id="2" type="string" values="">
-			<Description>Channel Name</Description>
-		</ScriptParameter>
 	</Parameters>
 
 	<Script>

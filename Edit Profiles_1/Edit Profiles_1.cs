@@ -115,8 +115,8 @@ namespace Edit_Profiles_1
 
 		private void RunSafe(IEngine engine)
 		{
-			var nevionElementId = NevionUtils.GetOneDeserializedValue(engine.GetScriptParam("Nevion Element ID").Value);
-			var instanceId = NevionUtils.GetOneDeserializedValue(engine.GetScriptParam("Instance ID").Value);
+			var nevionElementId = Utils.GetOneDeserializedValue(engine.GetScriptParam("Nevion Element ID").Value);
+			var instanceId = Utils.GetOneDeserializedValue(engine.GetScriptParam("Instance ID").Value);
 
 			if (String.IsNullOrEmpty(nevionElementId))
 			{

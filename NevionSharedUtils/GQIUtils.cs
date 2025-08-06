@@ -72,15 +72,15 @@
 			return objArray;
 		}
 
-		public static List<DomInstanceValues> GetDOMPermissions(DomHelper domHelper, string tagType)
+		public static List<NevionProfileDomValues> GetDOMPermissions(DomHelper domHelper, string tagType)
 		{
 			var instances = domHelper.DomInstances.Read(DomInstanceExposers.DomDefinitionId.Equal(Lca_Access.Definitions.Nevion_Control.Id));
 
 			var tagsFieldDescriptor = tagType == "Source"
-			? Lca_Access.Sections.NevionControl.SourceTags
-			: Lca_Access.Sections.NevionControl.DestinationTags;
+				? Lca_Access.Sections.NevionControl.SourceTags
+				: Lca_Access.Sections.NevionControl.DestinationTags;
 
-			var valuesList = new List<DomInstanceValues>();
+			var valuesList = new List<NevionProfileDomValues>();
 			foreach (var instance in instances)
 			{
 				var username = instance.GetFieldValue<string>(Lca_Access.Sections.BasicInformation.Id, Lca_Access.Sections.BasicInformation.Username)?.Value;
@@ -88,7 +88,7 @@
 				var tags = instance.GetFieldValue<string>(Lca_Access.Sections.NevionControl.Id, tagsFieldDescriptor)?.Value;
 				var destinations = instance.GetFieldValue<string>(Lca_Access.Sections.NevionControl.Id, Lca_Access.Sections.NevionControl.DestinationNames)?.Value;
 
-				valuesList.Add(new DomInstanceValues { Username = username, Group = group, Tags = tags, Destinations = destinations });
+				valuesList.Add(new NevionProfileDomValues { Username = username, Group = group, Tags = tags, Destinations = destinations });
 			}
 
 			return valuesList;
@@ -108,7 +108,7 @@
 			return nevionResponse;
 		}
 
-		public static List<string> MatchingValuesByGroup(List<DomInstanceValues> valuesList, List<string> groupNames, Func<DomInstanceValues, string> selector)
+		public static List<string> MatchingValuesByGroup(List<NevionProfileDomValues> valuesList, List<string> groupNames, Func<NevionProfileDomValues, string> selector)
 		{
 			var result = new List<string>();
 
@@ -128,7 +128,7 @@
 			return result.Distinct().ToList();
 		}
 
-		public class DomInstanceValues
+		public class NevionProfileDomValues
 		{
 			public string Username { get; set; }
 
