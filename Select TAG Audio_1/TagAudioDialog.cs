@@ -97,24 +97,40 @@
 		{
 			var domHelper = new DomHelper(engine.SendSLNetMessages, DomIds.Lca_Access.ModuleId);
 			var userConfig = Utils.GetDOMPermissionsByUser(domHelper, "Destination", engine);
-			var outputsPermitted = userConfig.Destinations.Split(',').Select(x => Utils.RemoveBracketPrefix(x).Trim()).Distinct();
+			var outputsPermitted = userConfig.Destinations.Split(',').Select(x => Utils.RemoveBracketPrefix(x).Trim()).Distinct().OrderBy(x => x);
+			var defaultOutput = outputsPermitted.FirstOrDefault();
 			OutputSelectionDropDown.SetOptions(outputsPermitted);
 
 			//Tag Source: <list of current sources in the layout for the output>
 			// -auto selected based on what the current channel is in the 1st output audio
 			// Channel Audio PIDs: < current list of audio based on the selected Tag Source>
 
-			string outputPidName = Utils.RemoveBracketPrefix(channelName) + "/1";
+			var outputLayoutFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.OutputsLayoutsTable.Pid.Output, Value = defaultOutput };
+			var outputLayoutRow = tagElement.GetTable(TAGMCSIds.OutputsLayoutsTable.TablePid).QueryData(new List<ColumnFilter> { outputLayoutFilter }).FirstOrDefault();
+			var outputLayoutId = Convert.ToString(outputLayoutRow[TAGMCSIds.OutputsLayoutsTable.Idx.LayoutID]);
+			var outputId = Convert.ToString(outputLayoutRow[TAGMCSIds.OutputsLayoutsTable.Idx.OutputID]);
 
-			var channelPidRows = tagElement.GetTable(TAGMCSIds.ChannelPidsTable.TablePid).GetRows();
-			var audioRowsForChannel = channelPidRows.Where(row =>
-				Convert.ToInt32(row[TAGMCSIds.ChannelPidsTable.Idx.Type]) == (int)TAGMCSIds.ChannelPidsTable.ChannelPidsType.Audio
-				&& Convert.ToString(row[TAGMCSIds.ChannelPidsTable.Idx.DisplaysName]).Contains(channelName));
+			var layoutFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.AllLayoutChannelsTable.Pid.Index, Value = outputLayoutId };
+			var layoutChannelRows = tagElement.GetTable(TAGMCSIds.AllLayoutChannelsTable.TablePid).QueryData(new List<ColumnFilter> { layoutFilter });
 
-			var channelConfigTable = tagElement.GetTable(TAGMCSIds.ChannelConfigTable.TablePid);
-			var displayKeys = channelConfigTable.GetDisplayKeys();
-			var fullChannelName = displayKeys.FirstOrDefault(x => x.Contains(channelName));
-			var channelId = channelConfigTable.GetPrimaryKey(fullChannelName);
+			var outputAudioLabel = defaultOutput + "/1";
+			var outputAudioFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.OutputAudiosTable.Pid.Label, Value = outputAudioLabel };
+			var firstOutputAudioRow = tagElement.GetTable(TAGMCSIds.OutputAudiosTable.TablePid).QueryData(new List<ColumnFilter> { outputAudioFilter }).FirstOrDefault();
+			var outputChannel = Convert.ToString(firstOutputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.Channel]);
+
+			var defaultSourceRow = layoutChannelRows.First(x => Convert.ToInt32(x[TAGMCSIds.AllLayoutChannelsTable.Idx.Position]) == 1);
+			var defaultSource = Convert.ToString(defaultSourceRow[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelTitle]);
+			var defaultSourceId = Convert.ToString(defaultSourceRow[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelSourceId]);
+			var channelsInLayout = layoutChannelRows
+				.Select(x => Convert.ToString(x[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelTitle]))
+				.OrderBy(x => x);
+
+			ChannelSelectionDropDown.SetOptions(channelsInLayout);
+			ChannelSelectionDropDown.Selected = outputChannel ?? defaultSource;
+
+			var pidsChannelFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.ChannelPidsTable.Pid.ChannelId, Value = defaultSourceId };
+			var pidsAudioFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.ChannelPidsTable.Pid.Type, Value = Convert.ToString((int)TAGMCSIds.ChannelPidsTable.ChannelPidsType.Audio) };
+			var audioRowsForChannel = tagElement.GetTable(TAGMCSIds.ChannelPidsTable.TablePid).QueryData(new List<ColumnFilter> { pidsChannelFilter, pidsAudioFilter });
 
 			var audioDisplays = audioRowsForChannel.Select(row =>
 			{
@@ -149,11 +165,6 @@
 
 			this.ChannelAudioEncodingDropDown.Options = audioDisplays;
 
-			var outputPidsTable = tagElement.GetTable(TAGMCSIds.OutputAudiosTable.TablePid);
-			var outputPidsFilter = new List<ColumnFilter> { new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.OutputAudiosTable.Pid.Label, Value = outputPidName } };
-			var outputPidsMatchingRow = outputPidsTable.QueryData(outputPidsFilter).First();
-			var outputId = Convert.ToString(outputPidsMatchingRow[TAGMCSIds.OutputAudiosTable.Idx.OutputID]);
-
 			this.ChangeAudioButton.Pressed += (sender, args) =>
 			{
 				var interAppHelper = new TagMCS(engine.GetUserConnection(), tagElement.AgentId, tagElement.Id);
@@ -175,7 +186,7 @@
 				outputConfig.Processing.Audio[0].Mask = channelMaskingMap[ChannelAudioMaskDropDown.Selected];
 				outputConfig.Input.Audio[0].AudioIndex = audioId;
 				outputConfig.Input.Audio[0].AudioPid = pid;
-				outputConfig.Input.Audio[0].Channel = channelId;
+				outputConfig.Input.Audio[0].Channel = defaultSourceId;
 				outputConfig.Processing.Muxing.Audio[0].Pid = pid;
 
 				var setMessage = new SetOutputConfigRequest

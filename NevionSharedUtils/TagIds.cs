@@ -2,24 +2,43 @@
 {
 	public class TAGMCSIds
 	{
-		public class AllLayoutsTable
+		public static class AllLayoutChannelsTable
 		{
 			public static readonly int TablePid = 5600;
 
-			public class Idx
+			public static class Idx
 			{
 				public static readonly int Index = 0;
-				public static readonly int Title = 2;
+				public static readonly int ChannelSourceId = 1;
+				public static readonly int ChannelTitle = 2;
+				public static readonly int LayoutID = 3;
+				public static readonly int Layout = 4;
+				public static readonly int Position = 5;
+				public static readonly int UMD1 = 6;
+				public static readonly int UMD2 = 7;
+				public static readonly int UMD3 = 8;
+				public static readonly int UMD4 = 9;
+				public static readonly int Tags = 10;
 				public static readonly int DisplayKey = 11;
 			}
 
-			public class Pid
+			public static class Pid
 			{
+				public static readonly int Index = 5601;
+				public static readonly int ChannelSource = 5602;
 				public static readonly int Title = 5603;
+				public static readonly int LayoutID = 5604;
 				public static readonly int Layout = 5605;
+				public static readonly int Position = 5606;
+				public static readonly int UMD1 = 5607;
+				public static readonly int UMD2 = 5608;
+				public static readonly int UMD3 = 5609;
+				public static readonly int UMD4 = 5610;
+				public static readonly int Tags = 5611;
 				public static readonly int DisplayKey = 5612;
 			}
 		}
+
 
 		public class ChannelConfigTable
 		{
@@ -72,6 +91,7 @@
 				public static readonly int AESChannels = 27;
 				public static readonly int ProfileID = 28;
 				public static readonly int DisplaysName = 29;
+				public static readonly int ChannelId = 30;
 			}
 
 			public class Pid
@@ -106,6 +126,7 @@
 				public static readonly int AESChannels = 2528;
 				public static readonly int ProfileID = 2529;
 				public static readonly int DisplaysName = 2530;
+				public static readonly int ChannelId = 2531;
 			}
 		}
 
@@ -141,6 +162,31 @@
 				public static readonly int Mode = 3309;
 				public static readonly int OutputPID = 3310;
 				public static readonly int OutputMask = 3311;
+			}
+		}
+
+		public static class OutputsLayoutsTable
+		{
+			public static readonly int TablePid = 3400;
+
+			public static class Idx
+			{
+				public static readonly int Index = 0;
+				public static readonly int LabelIDX = 1;
+				public static readonly int OutputID = 2;
+				public static readonly int Output = 3;
+				public static readonly int LayoutID = 4;
+				public static readonly int Layout = 5;
+			}
+
+			public static class Pid
+			{
+				public static readonly int Index = 3401;
+				public static readonly int LabelIDX = 3402;
+				public static readonly int OutputID = 3403;
+				public static readonly int Output = 3404;
+				public static readonly int LayoutID = 3405;
+				public static readonly int Layout = 3406;
 			}
 		}
 
