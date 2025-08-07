@@ -155,7 +155,6 @@
 			{
 				var tagMcsElement = dms.GetElement("TAG AWS MCS");
 
-				// get the correct channel name from tag finding all configuration display keys containing destination name (only should be one)
 				var tagMcs = new TagMCS(engine.GetUserConnection(), tagMcsElement.AgentId, tagMcsElement.Id);
 
 				var destinationName = DestinationNames[0];
@@ -163,12 +162,12 @@
 
 				var newChannelName = $"{SourceName}->{DestinationNames[0]}";
 
-				string channelId = GetIdFromName(tagMcsElement, TAGMCSIds.ChannelConfigTable.TablePid, destinationName);
+				string channelId = Utils.GetIdFromName(tagMcsElement, TAGMCSIds.ChannelConfigTable.TablePid, destinationName);
 
 				var errorBuilder = new StringBuilder();
 				ChangeChannelLabelRequest(tagMcs, errorBuilder, channelId, newChannelName);
 
-				string layoutId = GetIdFromName(tagMcsElement, TAGMCSIds.LayoutTable.TablePid, layoutName);
+				string layoutId = Utils.GetIdFromName(tagMcsElement, TAGMCSIds.LayoutTable.TablePid, layoutName);
 
 				var getLayoutRequest = new GetLayoutConfigRequest(layoutId, MessageIdentifier.ID);
 				var layoutResponse = tagMcs.SendMessage(getLayoutRequest, TimeSpan.FromSeconds(30)) as GetLayoutConfigResponse;
@@ -185,15 +184,6 @@
 				ErrorMessageDialog.ShowMessage(engine, $"Nevion connection made, but there was a script exception while updating TAG. Please contact Skyline: {e}");
 				Engine.Log($"ConnectTagMCS|Failed to update TAG: {e}");
 			}
-		}
-
-		private static string GetIdFromName(IDmsElement tagMcsElement, int tableId, string name)
-		{
-			var layoutTable = tagMcsElement.GetTable(tableId);
-			var layoutKeys = layoutTable.GetDisplayKeys();
-			var matchingLayout = layoutKeys.FirstOrDefault(x => x.Contains(name));
-			var layoutId = layoutTable.GetPrimaryKey(matchingLayout);
-			return layoutId;
 		}
 
 		private void ChangeChannelLabelRequest(TagMCS interAppTagMcs, StringBuilder errorBuilder, string channelId, string newChannelLabel)

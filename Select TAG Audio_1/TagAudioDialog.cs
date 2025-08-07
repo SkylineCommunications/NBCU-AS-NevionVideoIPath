@@ -42,17 +42,17 @@
 
 			Title = "Change TAG PID";
 			OutputSelectionLabel = new Label("Output:");
-			OutputSelectionDropDown = new DropDown();
+			OutputSelectionDropDown = new DropDown { IsSorted = true };
 
 			ChannelSelectionLabel = new Label("Source:");
-			ChannelSelectionDropDown = new DropDown();
+			ChannelSelectionDropDown = new DropDown { IsSorted = true };
 
-			ChannelAudioEncodingLabel = new Label("Channel Audio PID:");
-			ChannelAudioEncodingDropDown = new DropDown();
+			ChannelAudioEncodingLabel = new Label("Source PID:");
+			ChannelAudioEncodingDropDown = new DropDown { IsSorted = true };
 
-			ChannelAudioMaskLabel = new Label("Audio Mask:");
+			ChannelAudioMaskLabel = new Label("Audio Channel:");
 			ChannelAudioMaskDropDown = new DropDown(new List<string> { "None", "Front Left", "Front Right", "Center", "Low-Frequency Effects", "Surround Left", "Surround Right" });
-			ChangeAudioButton = new Button("Change Audio");
+			ChangeAudioButton = new Button("Change Audio") { Style = ButtonStyle.CallToAction };
 			CancelButton = new Button("Cancel");
 
 			int layoutPosition = 0;
@@ -67,10 +67,13 @@
 			AddWidget(ChangeAudioButton, ++layoutPosition, 1, HorizontalAlignment.Right);
 			AddWidget(CancelButton, layoutPosition, 0, HorizontalAlignment.Left);
 
-			ChannelAudioEncodingLabel.Width = 150;
-			ChannelAudioEncodingDropDown.Width = 300;
+			ChannelAudioEncodingLabel.Width = 100;
+			ChannelAudioEncodingDropDown.Width = 400;
+			OutputSelectionDropDown.Width = 400;
+			ChannelSelectionDropDown.Width = 400;
+			ChannelAudioMaskDropDown.Width = 400;
 			ChangeAudioButton.Width = 150;
-			CancelButton.Width = 150;
+			CancelButton.Width = 100;
 		}
 
 		public Label OutputSelectionLabel { get; private set; }
@@ -97,20 +100,91 @@
 		{
 			var domHelper = new DomHelper(engine.SendSLNetMessages, DomIds.Lca_Access.ModuleId);
 			var userConfig = Utils.GetDOMPermissionsByUser(domHelper, "Destination", engine);
-			var outputsPermitted = userConfig.Destinations.Split(',').Select(x => Utils.RemoveBracketPrefix(x).Trim()).Distinct().OrderBy(x => x);
+			var outputsPermitted = userConfig.Destinations.Split(',').Select(x => Utils.RemoveBracketPrefix(x).Trim()).Distinct();
 			var defaultOutput = outputsPermitted.FirstOrDefault();
 			OutputSelectionDropDown.SetOptions(outputsPermitted);
 
-			//Tag Source: <list of current sources in the layout for the output>
-			// -auto selected based on what the current channel is in the 1st output audio
-			// Channel Audio PIDs: < current list of audio based on the selected Tag Source>
+			SetChannelDropdown(defaultOutput, out string defaultSourceId);
+			SetAudioPidsDropdown(defaultSourceId);
 
+			InitializeEvents();
+		}
+
+		public void InitializeEvents()
+		{
+			OutputSelectionDropDown.Changed += (sender, args) =>
+			{
+				var selectedOutput = OutputSelectionDropDown.Selected;
+				SetChannelDropdown(selectedOutput, out string defaultSourceId);
+				SetAudioPidsDropdown(defaultSourceId);
+			};
+
+			ChannelSelectionDropDown.Changed += (sender, args) =>
+			{
+				var selectedChannel = ChannelSelectionDropDown.Selected;
+				var sourceId = Utils.GetIdFromName(tagElement, TAGMCSIds.ChannelConfigTable.TablePid, selectedChannel);
+				SetAudioPidsDropdown(sourceId);
+			};
+
+			ChangeAudioButton.Pressed += (sender, args) =>
+			{
+				var selectedOutput = OutputSelectionDropDown.Selected;
+				var outputId = Utils.GetIdFromName(tagElement, TAGMCSIds.OutputConfigTable.TablePid, selectedOutput);
+
+				var selectedChannel = ChannelSelectionDropDown.Selected;
+				var sourceId = Utils.GetIdFromName(tagElement, TAGMCSIds.ChannelConfigTable.TablePid, selectedChannel);
+
+				var interAppHelper = new TagMCS(engine.GetUserConnection(), tagElement.AgentId, tagElement.Id);
+				var getOutputConfig = new GetOutputConfigRequest(outputId, MessageIdentifier.ID);
+				var outputConfigResponse = interAppHelper.SendMessage(getOutputConfig, TimeSpan.FromSeconds(30)) as GetOutputConfigResponse;
+				if (outputConfigResponse == null)
+				{
+					ErrorMessageDialog.ShowMessage(engine, $"Updating the output failed, as the response from the MCS is invalid.");
+					engine.ExitFail("Failure");
+				}
+
+				var selectedPid = this.ChannelAudioEncodingDropDown.Selected;
+				var match = Regex.Match(selectedPid, @"Aud\((\d+)\)\s+PID\s+(\d+)");
+
+				string audioId = match.Groups[1].Value;
+				string pid = match.Groups[2].Value;
+
+				var outputConfig = outputConfigResponse.Output;
+				outputConfig.Processing.Audio[0].Mask = channelMaskingMap[ChannelAudioMaskDropDown.Selected];
+				outputConfig.Input.Audio[0].AudioIndex = audioId;
+				outputConfig.Input.Audio[0].AudioPid = pid;
+				outputConfig.Input.Audio[0].Channel = sourceId;
+				outputConfig.Processing.Muxing.Audio[0].Pid = pid;
+
+				var setMessage = new SetOutputConfigRequest
+				{
+					Output = outputConfig,
+				};
+
+				var setResponse = interAppHelper.SendMessage(setMessage, TimeSpan.FromMinutes(2)) as InterAppResponse;
+
+				if (!setResponse.Success)
+				{
+					ErrorMessageDialog.ShowMessage(engine, $"Updating the output failed : {setResponse.ResponseMessage}.");
+				}
+				else
+				{
+					InformationMessageDialog.ShowMessage(engine, "Audio successfully set.");
+				}
+
+				engine.ExitSuccess("Finished");
+			};
+
+			CancelButton.Pressed += (sender, args) => engine.ExitSuccess("Changed Audio Canceled by User");
+		}
+
+		private void SetChannelDropdown(string defaultOutput, out string defaultSourceId)
+		{
 			var outputLayoutFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.OutputsLayoutsTable.Pid.Output, Value = defaultOutput };
 			var outputLayoutRow = tagElement.GetTable(TAGMCSIds.OutputsLayoutsTable.TablePid).QueryData(new List<ColumnFilter> { outputLayoutFilter }).FirstOrDefault();
 			var outputLayoutId = Convert.ToString(outputLayoutRow[TAGMCSIds.OutputsLayoutsTable.Idx.LayoutID]);
-			var outputId = Convert.ToString(outputLayoutRow[TAGMCSIds.OutputsLayoutsTable.Idx.OutputID]);
 
-			var layoutFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.AllLayoutChannelsTable.Pid.Index, Value = outputLayoutId };
+			var layoutFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.AllLayoutChannelsTable.Pid.LayoutID, Value = outputLayoutId };
 			var layoutChannelRows = tagElement.GetTable(TAGMCSIds.AllLayoutChannelsTable.TablePid).QueryData(new List<ColumnFilter> { layoutFilter });
 
 			var outputAudioLabel = defaultOutput + "/1";
@@ -120,14 +194,17 @@
 
 			var defaultSourceRow = layoutChannelRows.First(x => Convert.ToInt32(x[TAGMCSIds.AllLayoutChannelsTable.Idx.Position]) == 1);
 			var defaultSource = Convert.ToString(defaultSourceRow[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelTitle]);
-			var defaultSourceId = Convert.ToString(defaultSourceRow[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelSourceId]);
+			defaultSourceId = Convert.ToString(defaultSourceRow[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelSourceId]);
 			var channelsInLayout = layoutChannelRows
-				.Select(x => Convert.ToString(x[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelTitle]))
-				.OrderBy(x => x);
+				.Select(x => Convert.ToString(x[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelTitle]));
 
 			ChannelSelectionDropDown.SetOptions(channelsInLayout);
-			ChannelSelectionDropDown.Selected = outputChannel ?? defaultSource;
 
+			ChannelSelectionDropDown.Selected = String.IsNullOrWhiteSpace(outputChannel) || outputChannel == "None" ? defaultSource : outputChannel;
+		}
+
+		private void SetAudioPidsDropdown(string defaultSourceId)
+		{
 			var pidsChannelFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.ChannelPidsTable.Pid.ChannelId, Value = defaultSourceId };
 			var pidsAudioFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.ChannelPidsTable.Pid.Type, Value = Convert.ToString((int)TAGMCSIds.ChannelPidsTable.ChannelPidsType.Audio) };
 			var audioRowsForChannel = tagElement.GetTable(TAGMCSIds.ChannelPidsTable.TablePid).QueryData(new List<ColumnFilter> { pidsChannelFilter, pidsAudioFilter });
@@ -164,49 +241,6 @@
 			});
 
 			this.ChannelAudioEncodingDropDown.Options = audioDisplays;
-
-			this.ChangeAudioButton.Pressed += (sender, args) =>
-			{
-				var interAppHelper = new TagMCS(engine.GetUserConnection(), tagElement.AgentId, tagElement.Id);
-				var getOutputConfig = new GetOutputConfigRequest(outputId, MessageIdentifier.ID);
-				var outputConfigResponse = interAppHelper.SendMessage(getOutputConfig, TimeSpan.FromSeconds(30)) as GetOutputConfigResponse;
-				if (outputConfigResponse == null)
-				{
-					ErrorMessageDialog.ShowMessage(engine, $"Updating the output failed, as the response from the MCS failed.");
-					engine.ExitFail("Failure");
-				}
-
-				var selectedPid = this.ChannelAudioEncodingDropDown.Selected;
-				var match = Regex.Match(selectedPid, @"Aud\((\d+)\)\s+PID\s+(\d+)");
-
-				string audioId = match.Groups[1].Value;
-				string pid = match.Groups[2].Value;
-
-				var outputConfig = outputConfigResponse.Output;
-				outputConfig.Processing.Audio[0].Mask = channelMaskingMap[ChannelAudioMaskDropDown.Selected];
-				outputConfig.Input.Audio[0].AudioIndex = audioId;
-				outputConfig.Input.Audio[0].AudioPid = pid;
-				outputConfig.Input.Audio[0].Channel = defaultSourceId;
-				outputConfig.Processing.Muxing.Audio[0].Pid = pid;
-
-				var setMessage = new SetOutputConfigRequest
-				{
-					Output = outputConfig,
-				};
-
-				var setResponse = interAppHelper.SendMessage(setMessage, TimeSpan.FromMinutes(2)) as InterAppResponse;
-
-				if (!setResponse.Success)
-				{
-					ErrorMessageDialog.ShowMessage(engine, $"Updating the output failed : {setResponse.ResponseMessage}.");
-				}
-				else
-				{
-					InformationMessageDialog.ShowMessage(engine, "Audio successfully set.");
-				}
-
-				engine.ExitSuccess("Finished");
-			};
 		}
 	}
 }

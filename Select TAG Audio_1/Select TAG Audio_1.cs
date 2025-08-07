@@ -52,16 +52,11 @@ dd/mm/2024	1.0.0.1		XXX, Skyline	Initial version
 namespace TAG_SelectTAGAudio_1
 {
 	using System;
-	using System.Collections.Generic;
-	using System.Linq;
 
 	using Nevion.TagAudioDialog;
 
-	using NevionCommon_1;
-
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
-	using Skyline.DataMiner.Utils.SecureCoding.SecureSerialization.Json.Newtonsoft;
 
 	/// <summary>
 	/// Represents a DataMiner Automation script.
@@ -87,7 +82,7 @@ namespace TAG_SelectTAGAudio_1
 
 				var dialog = new TagAudioDialog(engine, "TAG AWS MCS");
 				dialog.Initialize();
-				dialog.CancelButton.Pressed += (sender, args) => engine.ExitSuccess("Changed Audio Canceled by User");
+				dialog.InitializeEvents();
 
 				controller.ShowDialog(dialog);
 			}
@@ -97,7 +92,7 @@ namespace TAG_SelectTAGAudio_1
 			}
 			catch (Exception ex)
 			{
-				engine.GenerateInformation($"Exception thrown: {ex}");
+				engine.Log($"Exception thrown: {ex}");
 				throw;
 			}
 		}

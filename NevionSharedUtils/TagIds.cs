@@ -45,6 +45,11 @@
 			public static readonly int TablePid = 2100;
 		}
 
+		public class OutputConfigTable
+		{
+			public static readonly int TablePid = 3100;
+		}
+
 		public class LayoutTable
 		{
 			public static readonly int TablePid = 3600;
@@ -189,6 +194,5 @@
 				public static readonly int Layout = 3406;
 			}
 		}
-
 	}
 }

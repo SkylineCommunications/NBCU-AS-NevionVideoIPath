@@ -11,6 +11,7 @@
 
 	using Skyline.DataMiner.Analytics.GenericInterface;
 	using Skyline.DataMiner.Automation;
+	using Skyline.DataMiner.Core.DataMinerSystem.Common;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
@@ -96,6 +97,15 @@
 			var matchingByUsername = valuesList.FirstOrDefault(instance => instance.Username == systemUserName);
 
 			return matchingByUsername;
+		}
+
+		public static string GetIdFromName(IDmsElement tagMcsElement, int tableId, string name)
+		{
+			var layoutTable = tagMcsElement.GetTable(tableId);
+			var layoutKeys = layoutTable.GetDisplayKeys();
+			var matchingLayout = layoutKeys.FirstOrDefault(x => x.Contains(name));
+			var layoutId = layoutTable.GetPrimaryKey(matchingLayout);
+			return layoutId;
 		}
 	}
 }
