@@ -6,6 +6,7 @@
 	using System.Globalization;
 	using System.Linq;
 	using System.Text;
+	using System.Text.RegularExpressions;
 	using System.Threading;
 
 	using NevionCommon_1;
@@ -14,6 +15,7 @@
 
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS;
+	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.API_Models;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.InterApp.Messages;
 	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
@@ -173,6 +175,7 @@
 				var layoutResponse = tagMcs.SendMessage(getLayoutRequest, TimeSpan.FromSeconds(30)) as GetLayoutConfigResponse;
 
 				UpdateLayout(tagMcs, 1, layoutResponse, channelId, errorBuilder);
+				UpdateOutput(tagMcsElement, tagMcs, layoutName, channelId, errorBuilder);
 
 				if (errorBuilder.Length != 0)
 				{
@@ -183,6 +186,42 @@
 			{
 				ErrorMessageDialog.ShowMessage(engine, $"Nevion connection made, but there was a script exception while updating TAG. Please contact Skyline: {e}");
 				Engine.Log($"ConnectTagMCS|Failed to update TAG: {e}");
+			}
+		}
+
+		private void UpdateOutput(IDmsElement tagMcsElement, TagMCS tagMcs, string layoutName, string channelId, StringBuilder errorBuilder)
+		{
+			try
+			{
+				var outputId = Utils.GetIdFromName(tagMcsElement, TAGMCSIds.OutputConfigTable.TablePid, layoutName);
+
+				var getOutputConfig = new GetOutputConfigRequest(outputId, MessageIdentifier.ID);
+				var outputConfigResponse = tagMcs.SendMessage(getOutputConfig, TimeSpan.FromSeconds(30)) as GetOutputConfigResponse;
+				if (outputConfigResponse == null)
+				{
+					ErrorMessageDialog.ShowMessage(Engine, $"Updating the output failed, as the response from the MCS is invalid.");
+					Engine.ExitFail("Failure");
+				}
+
+				var outputConfig = outputConfigResponse.Output;
+				outputConfig.Input.Audio[0].Channel = channelId;
+
+				var setMessage = new SetOutputConfigRequest
+				{
+					Output = outputConfig,
+				};
+
+				var setResponse = tagMcs.SendMessage(setMessage, TimeSpan.FromMinutes(2)) as InterAppResponse;
+
+				if (!setResponse.Success)
+				{
+					errorBuilder.AppendLine($"Updating the output with channel failed : {setResponse.ResponseMessage}.");
+				}
+			}
+			catch (Exception e)
+			{
+				errorBuilder.AppendLine($"Script exception while changing the output source. Please contact Skyline: {e}");
+				Engine.Log($"UpdateOutput|Failed to update channel output: {e}");
 			}
 		}
 
@@ -257,6 +296,7 @@
 				Engine.Log($"UpdateLayout|Failed to update TAG Layout: {e}");
 			}
 		}
+
 		public string SourceName
 		{
 			get
