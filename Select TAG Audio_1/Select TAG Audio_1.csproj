@@ -51,7 +51,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS">
-      <Version>1.0.1-prerelease4</Version>
+      <Version>1.0.1</Version>
     </PackageReference>
     <PackageReference Include="Skyline.DataMiner.Core.DataMinerSystem.Automation">
       <Version>1.1.0.5</Version>
@@ -79,7 +79,7 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties DisLinkId="1" DisProjectType="automationScriptProject" DisLinkedXmlFile="..\Select TAG Audio.xml" />
+      <UserProperties DisLinkedXmlFile="..\Select TAG Audio.xml" DisProjectType="automationScriptProject" DisLinkId="1" />
     </VisualStudio>
   </ProjectExtensions>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
