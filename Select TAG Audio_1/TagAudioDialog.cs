@@ -11,7 +11,6 @@
 
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS;
-	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.API_Models;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.InterApp.Messages;
 	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
@@ -22,6 +21,8 @@
 	{
 		private readonly IEngine engine;
 		private readonly IDmsElement tagElement;
+
+		private string currentPid;
 
 		private static Dictionary<string, int?> channelMaskingMap = new Dictionary<string, int?>
 		{
@@ -191,6 +192,8 @@
 			var outputAudioFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.OutputAudiosTable.Pid.Label, Value = outputAudioLabel };
 			var firstOutputAudioRow = tagElement.GetTable(TAGMCSIds.OutputAudiosTable.TablePid).QueryData(new List<ColumnFilter> { outputAudioFilter }).FirstOrDefault();
 			var outputChannel = Convert.ToString(firstOutputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.Channel]);
+			currentPid = Convert.ToString(firstOutputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.OutputPID]);
+			var currentMask = Convert.ToInt32(firstOutputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.OutputMask]);
 
 			var defaultSourceRow = layoutChannelRows.First(x => Convert.ToInt32(x[TAGMCSIds.AllLayoutChannelsTable.Idx.Position]) == 1);
 			var defaultSource = Convert.ToString(defaultSourceRow[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelTitle]);
@@ -201,6 +204,7 @@
 			ChannelSelectionDropDown.SetOptions(channelsInLayout);
 
 			ChannelSelectionDropDown.Selected = String.IsNullOrWhiteSpace(outputChannel) || outputChannel == "None" ? defaultSource : outputChannel;
+			ChannelAudioMaskDropDown.Selected = currentMask < 1 ? "None" : channelMaskingMap.FirstOrDefault(x => x.Value == currentMask).Key;
 		}
 
 		private void SetAudioPidsDropdown(string defaultSourceId)
@@ -209,7 +213,9 @@
 			var pidsAudioFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.ChannelPidsTable.Pid.Type, Value = Convert.ToString((int)TAGMCSIds.ChannelPidsTable.ChannelPidsType.Audio) };
 			var audioRowsForChannel = tagElement.GetTable(TAGMCSIds.ChannelPidsTable.TablePid).QueryData(new List<ColumnFilter> { pidsChannelFilter, pidsAudioFilter });
 
-			var audioDisplays = audioRowsForChannel.Select(row =>
+			var audioDisplays = new List<string>();
+			var currentPidFormat = String.Empty;
+			foreach (var row in audioRowsForChannel)
 			{
 				var language = Convert.ToString(row[TAGMCSIds.ChannelPidsTable.Idx.Language]);
 				var audioKey = Convert.ToString(row[TAGMCSIds.ChannelPidsTable.Idx.Index]);
@@ -234,13 +240,20 @@
 				}
 				else
 				{
-					audioFormat = $"Unknown ({audioFormatCode})";
+					audioFormat = $"Don't Care";
 				}
 
-				return $"{language.ToUpper()} - Aud({audioId}) PID {pid} - {audioFormat}";
-			});
+				var pidFormat = $"{language.ToUpper()} - Aud({audioId}) PID {pid} - {audioFormat}";
+				audioDisplays.Add(pidFormat);
 
-			this.ChannelAudioEncodingDropDown.Options = audioDisplays;
+				if (pid == currentPid)
+				{
+					currentPidFormat = pidFormat;
+				}
+			}
+
+			ChannelAudioEncodingDropDown.Options = audioDisplays;
+			ChannelAudioEncodingDropDown.Selected = currentPidFormat;
 		}
 	}
 }
