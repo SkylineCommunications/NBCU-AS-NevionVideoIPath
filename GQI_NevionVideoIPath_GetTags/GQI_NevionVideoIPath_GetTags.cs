@@ -140,7 +140,7 @@ public class GQI_NevionVideoIPath_GetTags : IGQIDataSource, IGQIOnInit, IGQIInpu
 		return tagsList;
 	}
 
-	private List<string> MatchingTagsByGroup(List<GQIUtils.DomInstanceValues> valuesList, List<string> groupNames)
+	private List<string> MatchingTagsByGroup(List<GQIUtils.NevionProfileDomValues> valuesList, List<string> groupNames)
 	{
 		var tagList = new List<string>();
 		foreach (var group in groupNames)

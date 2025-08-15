@@ -1,11 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <DMSScript options="272" xmlns="http://www.skyline.be/automation">
-	<Name>Select TAG Audio</Name>
+	<Name>NevionCommon</Name>
 	<Description></Description>
 	<Type>Automation</Type>
 	<Author>SKYLINE2\BlakeSM</Author>
 	<CheckSets>FALSE</CheckSets>
-	<Folder>Nevion VideoIPath/TAG</Folder>
+	<Folder>Nevion VideoIPath/Common</Folder>
 
 	<Protocols>
 	</Protocols>
@@ -18,9 +18,10 @@
 
 	<Script>
 		<Exe id="1" type="csharp">
-			<Value><![CDATA[[Project:Select TAG Audio_1]]]></Value>
+			<Value><![CDATA[[Project:NevionCommon_1]]]></Value>
 			<!--<Param type="debug">true</Param>-->
-			<Message></Message>
+			<Param type="preCompile">true</Param>
+			<Param type="libraryName">NevionCommon</Param>
 		</Exe>
 	</Script>
 </DMSScript>

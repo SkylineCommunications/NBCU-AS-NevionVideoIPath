@@ -2,14 +2,27 @@
 {
 	using System;
 	using System.Collections.Generic;
+	using System.Diagnostics;
 	using System.Globalization;
 	using System.Linq;
+	using System.Text;
+	using System.Text.RegularExpressions;
+	using System.Threading;
+
+	using NevionCommon_1;
+
+	using NevionSharedUtils;
 
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS;
+	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.API_Models;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.InterApp.Messages;
 	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
+	using Skyline.DataMiner.Core.DataMinerSystem.Common;
+	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
+
+	using static NevionSharedUtils.NevionIds;
 
 	public class ScheduleDialog : Dialog
 	{
@@ -40,14 +53,26 @@
 		private readonly Label routeLabel = new Label("Route");
 		private readonly RadioButtonList routeRadioButtonList = new RadioButtonList(new[] { "Point-to-Point", "Point-to-Multipoint" }, "Point-to-Multipoint");
 
+		private readonly Label existingVIPConnections = new Label("Existing Connections") { IsVisible = false };
+		private readonly Label existingConnectionsText = new Label("NOTE: The selected destination is in use, hitting connect will delete this existing connection:") { IsVisible = false };
+
+		private readonly IDms dms;
+		private readonly IDmsElement nevionElement;
+		private readonly IDmsTable connectionsTable;
+		private readonly Dictionary<string, string> existingConnections;
+
 		private readonly Element nevionVideoIPathElement;
 
 		private List<string> destinationNames;
 		private string[] primaryKeysCurrentServices = new string[0];
+		private bool skipVIPConnection;
 
 		public ScheduleDialog(IEngine engine) : base(engine)
 		{
 			Title = "Connect Services";
+			dms = engine.GetDms();
+
+			existingConnections = new Dictionary<string, string>();
 
 			nevionVideoIPathElement = engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
 			if (nevionVideoIPathElement == null)
@@ -62,15 +87,26 @@
 				return;
 			}
 
-			primaryKeysCurrentServices = nevionVideoIPathElement.GetTablePrimaryKeys(1500); // Used to check if new connection entries has been added after the ConnectServices.
+			nevionElement = dms.GetElement("Nevion VIP - Prod");
+			connectionsTable = nevionElement.GetTable(NevionConnectionsTable.TableId);
+
+			primaryKeysCurrentServices = nevionVideoIPathElement.GetTablePrimaryKeys(NevionConnectionsTable.TableId); // Used to check if new connection entries has been added after the ConnectServices.
 
 			startRadioButtonList.Changed += (s, o) => HandleStartOptionChanged();
 			endRadioButtonList.Changed += (s, o) => HandleEndOptionChanged();
 
 			ConnectButton.Pressed += (s, o) =>
 			{
-				TriggerConnectOnElement();
-				VerifyConnectService(); // Temproary untill real time updates are fully supported in the apps.
+				if (!TryDeleteConnections())
+				{
+					ErrorMessageDialog.ShowMessage(engine, $"Unable to delete the pre-existing connections: {String.Join(",", existingConnections.Values)}");
+				}
+
+				if (!skipVIPConnection)
+				{
+					TriggerConnectOnElement();
+					VerifyConnectService(); // Temporary until real time updates are fully supported in the apps.
+				}
 
 				// connect TAG
 				ConnectTagMCS(engine);
@@ -79,42 +115,186 @@
 			GenerateUI();
 		}
 
-		private void ConnectTagMCS(IEngine engine)
+		private bool TryDeleteConnections()
 		{
-			var dms = Engine.GetDms();
-			var tagMcsElement = dms.GetElement("TAG AWS QC MCS");
+			if (existingConnections.Count > 0)
+			{
+				if (skipVIPConnection)
+				{
+					// connection between source and destination exists, skip
+					return true;
+				}
 
-			var tagMcs = new TagMCS(engine.GetUserConnection(), tagMcsElement.AgentId, tagMcsElement.Id);
+				foreach (var key in existingConnections.Keys)
+				{
+					connectionsTable.GetColumn<double?>(NevionConnectionsTable.Pid.Connection).SetValue(key, 1);
+					Thread.Sleep(1000);
+				}
 
-			var destinationName = DestinationNames[0];
-			var layoutName = RemoveBracketPrefix(destinationName);
+				bool CheckKeysDeleted()
+				{
+					var updatedTableKeys = connectionsTable.GetPrimaryKeys().ToList();
+					var areKeysInTable = existingConnections.Keys.Any(key => updatedTableKeys.Contains(key));
+					return !areKeysInTable;
+				}
 
-			// get the correct channel name from tag finding all configuration display keys containing destination name (only should be one)
+				if (Utils.Retry(CheckKeysDeleted, TimeSpan.FromSeconds(30)))
+				{
+					return true;
+				}
+				else
+				{
+					return false;
+				}
+			}
 
-			// var layoutType = tagMcsElement.GetTable(3600).GetColumn<string>(3604).GetDisplayValue(destinationName, Skyline.DataMiner.Core.DataMinerSystem.Common.KeyType.DisplayKey);
-			// if (layoutType != "QC Channel_v1")
-			// {
-			// 	engine.ExitFail("MCS Layout is not the correct type");
-			// }
-
-			var layoutRequest = new SetChannelInLayoutRequest(layoutName, destinationName, 1, MessageIdentifier.Name);
-			tagMcs.SendMessage(layoutRequest, TimeSpan.FromSeconds(10));
+			return true;
 		}
 
-		public static string RemoveBracketPrefix(string input)
+		private void ConnectTagMCS(IEngine engine)
 		{
-			if (String.IsNullOrWhiteSpace(input))
+			try
 			{
-				return input;
-			}
+				var tagMcsElement = dms.GetElement("TAG AWS MCS");
 
-			int closingBracketIndex = input.IndexOf(']');
-			if (input.StartsWith("[") && closingBracketIndex != -1)
+				var tagMcs = new TagMCS(engine.GetUserConnection(), tagMcsElement.AgentId, tagMcsElement.Id);
+
+				var destinationName = DestinationNames[0];
+				var layoutName = Utils.RemoveBracketPrefix(destinationName);
+
+				var newChannelName = $"{SourceName}->{DestinationNames[0]}";
+
+				string channelId = Utils.GetIdFromName(tagMcsElement, TAGMCSIds.ChannelConfigTable.TablePid, destinationName);
+
+				var errorBuilder = new StringBuilder();
+				ChangeChannelLabelRequest(tagMcs, errorBuilder, channelId, newChannelName);
+
+				string layoutId = Utils.GetIdFromName(tagMcsElement, TAGMCSIds.LayoutTable.TablePid, layoutName);
+
+				var getLayoutRequest = new GetLayoutConfigRequest(layoutId, MessageIdentifier.ID);
+				var layoutResponse = tagMcs.SendMessage(getLayoutRequest, TimeSpan.FromSeconds(30)) as GetLayoutConfigResponse;
+
+				UpdateLayout(tagMcs, 1, layoutResponse, channelId, errorBuilder);
+				UpdateOutput(tagMcsElement, tagMcs, layoutName, channelId, errorBuilder);
+
+				if (errorBuilder.Length != 0)
+				{
+					ErrorMessageDialog.ShowMessage(engine, errorBuilder.ToString());
+				}
+			}
+			catch (Exception e)
 			{
-				return input.Substring(closingBracketIndex + 1).TrimStart();
+				ErrorMessageDialog.ShowMessage(engine, $"Nevion connection made, but there was a script exception while updating TAG. Please contact Skyline: {e}");
+				Engine.Log($"ConnectTagMCS|Failed to update TAG: {e}");
 			}
+		}
 
-			return input;
+		private void UpdateOutput(IDmsElement tagMcsElement, TagMCS tagMcs, string layoutName, string channelId, StringBuilder errorBuilder)
+		{
+			try
+			{
+				var outputId = Utils.GetIdFromName(tagMcsElement, TAGMCSIds.OutputConfigTable.TablePid, layoutName);
+
+				var getOutputConfig = new GetOutputConfigRequest(outputId, MessageIdentifier.ID);
+				var outputConfigResponse = tagMcs.SendMessage(getOutputConfig, TimeSpan.FromSeconds(30)) as GetOutputConfigResponse;
+				if (outputConfigResponse == null)
+				{
+					ErrorMessageDialog.ShowMessage(Engine, $"Updating the output failed, as the response from the MCS is invalid.");
+					Engine.ExitFail("Failure");
+				}
+
+				var outputConfig = outputConfigResponse.Output;
+				outputConfig.Input.Audio[0].Channel = channelId;
+
+				var setMessage = new SetOutputConfigRequest
+				{
+					Output = outputConfig,
+				};
+
+				var setResponse = tagMcs.SendMessage(setMessage, TimeSpan.FromMinutes(2)) as InterAppResponse;
+
+				if (!setResponse.Success)
+				{
+					errorBuilder.AppendLine($"Updating the output with channel failed : {setResponse.ResponseMessage}.");
+				}
+			}
+			catch (Exception e)
+			{
+				errorBuilder.AppendLine($"Script exception while changing the output source. Please contact Skyline: {e}");
+				Engine.Log($"UpdateOutput|Failed to update channel output: {e}");
+			}
+		}
+
+		private void ChangeChannelLabelRequest(TagMCS interAppTagMcs, StringBuilder errorBuilder, string channelId, string newChannelLabel)
+		{
+			try
+			{
+				var getChannelConfig = new GetChannelConfigRequest(channelId, MessageIdentifier.ID);
+				var response = interAppTagMcs.SendMessage(getChannelConfig, TimeSpan.FromSeconds(30)) as GetChannelConfigResponse;
+
+				if (response == null)
+				{
+					errorBuilder.AppendLine($"Unable to update label for channel with ID {channelId}.");
+					return;
+				}
+
+				if (response.Success)
+				{
+					response.Channel.Label = newChannelLabel;
+					var setMessage = new SetChannelConfigRequest
+					{
+						Channel = response.Channel,
+					};
+
+					var setResponse = interAppTagMcs.SendMessage(setMessage, TimeSpan.FromSeconds(30)) as InterAppResponse;
+
+					if (!setResponse.Success)
+					{
+						errorBuilder.AppendLine($"Unable to update label for channel with ID {channelId}.");
+					}
+				}
+				else
+				{
+					errorBuilder.AppendLine($"Failed to retrieve the channel from TAG: {response.ResponseMessage}");
+				}
+			}
+			catch (Exception e)
+			{
+				errorBuilder.AppendLine($"Script exception while changing the channel label. Please contact Skyline: {e}");
+				Engine.Log($"ChangeChannelLabelRequest|Failed to update TAG Layout: {e}");
+			}
+		}
+
+		private void UpdateLayout(TagMCS interAppTagMcs, int position, GetLayoutConfigResponse layoutResponse, string channelId, StringBuilder errorBuilder)
+		{
+			try
+			{
+				var matchingIndex = layoutResponse.Layout.Tiles.FindIndex(x => x.Index == position);
+
+				if (matchingIndex != -1)
+				{
+					layoutResponse.Layout.Tiles[matchingIndex].Channel = channelId;
+				}
+
+				layoutResponse.Layout.LayoutType = "TAG QC";
+
+				var setMessage = new SetLayoutConfigRequest
+				{
+					Layout = layoutResponse.Layout,
+				};
+
+				var setResponse = interAppTagMcs.SendMessage(setMessage, TimeSpan.FromMinutes(2)) as InterAppResponse;
+
+				if (!setResponse.Success)
+				{
+					errorBuilder.AppendLine($"Updating the layout with channel failed : {setResponse.ResponseMessage}.");
+				}
+			}
+			catch (Exception e)
+			{
+				errorBuilder.AppendLine($"Script exception while updating the TAG layout. Please contact Skyline: {e}");
+				Engine.Log($"UpdateLayout|Failed to update TAG Layout: {e}");
+			}
 		}
 
 		public string SourceName
@@ -221,6 +401,7 @@
 		{
 			SourceName = sourceName;
 			DestinationNames = destinationNames;
+
 			if (sourceTags.Contains("JPEG-XS-3G"))
 			{
 				ProfileName = "JPEG-XS-3G-TO-CLOUD";
@@ -231,7 +412,7 @@
 			}
 			else if (sourceTags.Contains("SRT"))
 			{
-				ProfileName = "AVC-HD-SRT-CALL";
+				ProfileName = "Automatic";
 			}
 			else
 			{
@@ -243,6 +424,27 @@
 			if (DestinationNames.Count > 1)
 			{
 				routeRadioButtonList.SetOptions(new[] { "Point-to-Multipoint" });
+			}
+
+			var connectionsWithDestination = connectionsTable.QueryData(new List<ColumnFilter> { new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = NevionConnectionsTable.Pid.DestinationName, Value = DestinationNames[0] } });
+
+			CheckCurrentSourcesAndDestinations(connectionsWithDestination);
+			if (existingConnections.Count > 0)
+			{
+				if (existingConnections.Any(x => x.Value.Contains(sourceNameValue.Text) && x.Value.Contains(destinationNamesLabel.Text)))
+				{
+					skipVIPConnection = true;
+					existingConnectionsText.Text = "NOTE: This VIP Connection already exists and will not be recreated";
+					return;
+				}
+
+				foreach (var connection in existingConnections)
+				{
+					existingConnectionsText.Text += $"{Environment.NewLine}  • [{connection.Key}]: {connection.Value}";
+				}
+
+				existingVIPConnections.IsVisible = true;
+				existingConnectionsText.IsVisible = true;
 			}
 		}
 
@@ -360,10 +562,34 @@
 			AddWidget(routeLabel, ++row, 0, HorizontalAlignment.Left, VerticalAlignment.Top);
 			AddWidget(routeRadioButtonList, row, 1, HorizontalAlignment.Left, VerticalAlignment.Top);
 
+			AddWidget(existingConnectionsText, ++row, 1);
+
 			AddWidget(new WhiteSpace(), ++row, 0);
 
 			AddWidget(CancelButton, ++row, 0);
 			AddWidget(ConnectButton, row, 1, HorizontalAlignment.Right);
+		}
+
+		private void CheckCurrentSourcesAndDestinations(IEnumerable<object[]> connectionsTableData)
+		{
+			foreach (var rowData in connectionsTableData)
+			{
+				var key = Convert.ToString(rowData[NevionConnectionsTable.Idx.ServiceId]);
+				if (key.EndsWith("-1") || key.EndsWith("-2"))
+				{
+					continue;
+				}
+
+				AddExistingConnection(rowData, key);
+			}
+		}
+
+		private void AddExistingConnection(object[] rowData, string serviceId)
+		{
+			var sourceName = Convert.ToString(rowData[NevionConnectionsTable.Idx.SourceName]);
+			var destName = Convert.ToString(rowData[NevionConnectionsTable.Idx.DestinationName]);
+
+			existingConnections.Add(serviceId, $"{sourceName} → {destName}");
 		}
 	}
 }
