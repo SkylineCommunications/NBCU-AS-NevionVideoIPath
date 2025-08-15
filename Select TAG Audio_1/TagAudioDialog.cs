@@ -211,7 +211,8 @@
 		{
 			var pidsChannelFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.ChannelPidsTable.Pid.ChannelId, Value = defaultSourceId };
 			var pidsAudioFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.ChannelPidsTable.Pid.Type, Value = Convert.ToString((int)TAGMCSIds.ChannelPidsTable.ChannelPidsType.Audio) };
-			var audioRowsForChannel = tagElement.GetTable(TAGMCSIds.ChannelPidsTable.TablePid).QueryData(new List<ColumnFilter> { pidsChannelFilter, pidsAudioFilter });
+			var pidsAes3Filter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.ChannelPidsTable.Pid.Type, Value = Convert.ToString((int)TAGMCSIds.ChannelPidsTable.ChannelPidsType.AES3) };
+			var audioRowsForChannel = tagElement.GetTable(TAGMCSIds.ChannelPidsTable.TablePid).QueryData(new List<ColumnFilter> { pidsChannelFilter, pidsAudioFilter, pidsAes3Filter });
 
 			var audioDisplays = new List<string>();
 			var currentPidFormat = String.Empty;

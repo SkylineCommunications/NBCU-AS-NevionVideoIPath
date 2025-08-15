@@ -62,6 +62,7 @@
 			public enum ChannelPidsType
 			{
 				Audio = 2,
+				AES3 = 10,
 			}
 
 			public class Idx
