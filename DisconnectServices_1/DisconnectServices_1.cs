@@ -54,6 +54,7 @@ namespace DisconnectServices_1
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+	using NevionCommon_1;
 	using NevionSharedUtils;
 	using Newtonsoft.Json;
 	using Skyline.DataMiner.Automation;
@@ -132,22 +133,22 @@ namespace DisconnectServices_1
 			var dms = engine.GetDms();
 
 			var nevionVideoIPathDmsElement = dms.GetElement(nevionVideoIPathElement.ElementName);
-			var currentServicesTable = nevionVideoIPathDmsElement.GetTable(NevionIds.CurrentServicesTable);
+			var currentServicesTable = nevionVideoIPathDmsElement.GetTable(NevionIds.NevionConnectionsTable.TableId);
 
 			var servicesToCancel = new List<string>();
 			foreach (var destinationId in destinationIds)
 			{
-				var rows = currentServicesTable.QueryData(new[] { new ColumnFilter { Pid = NevionIds.CurrentServicesDestinationId, ComparisonOperator = ComparisonOperator.Equal, Value = destinationId } });
+				var rows = currentServicesTable.QueryData(new[] { new ColumnFilter { Pid = NevionIds.NevionConnectionsTable.Pid.DestinationId, ComparisonOperator = ComparisonOperator.Equal, Value = destinationId } });
 				if (rows.Any())
 				{
-					servicesToCancel.AddRange(rows.Select(r => Convert.ToString(r[NevionIds.CurrentServicesIndexIdx])));
-					destinationNames.AddRange(rows.Select(r => Convert.ToString(r[NevionIds.CurrentServicesDestinationNamesIdx])));
+					servicesToCancel.AddRange(rows.Select(r => Convert.ToString(r[NevionIds.NevionConnectionsTable.Idx.ServiceId])));
+					destinationNames.AddRange(rows.Select(r => Convert.ToString(r[NevionIds.NevionConnectionsTable.Idx.DestinationName])));
 				}
 			}
 
 			foreach (var serviceId in servicesToCancel.OrderBy(s => s))
 			{
-				nevionVideoIPathElement.SetParameterByPrimaryKey(NevionIds.CurrentServicesCancelButton, serviceId, 1);
+				nevionVideoIPathElement.SetParameterByPrimaryKey(NevionIds.NevionConnectionsTable.Pid.Connection, serviceId, 1);
 			}
 
 			destinationNames = destinationNames.Distinct().ToList();
@@ -156,7 +157,7 @@ namespace DisconnectServices_1
 
 		private static void DisconnectTAGConnections(IEngine engine, List<string> destinationNames)
 		{
-			var channelNames = tagElement.GetTableDisplayKeys(TagIds.ChannelTable);
+			var channelNames = tagElement.GetTableDisplayKeys(TAGMCSIds.ChannelConfigTable.TablePid);
 			var channelsToDisconnect = channelNames.Where(c =>
 			{
 				var channelNameArray = c.Split(new[] { "->" }, StringSplitOptions.None);
@@ -203,7 +204,7 @@ namespace DisconnectServices_1
 		{
 			bool ChannelsDisconnected()
 			{
-				var displayKeys = tagElement.GetTableDisplayKeys(TagIds.ChannelTable);
+				var displayKeys = tagElement.GetTableDisplayKeys(TAGMCSIds.ChannelConfigTable.TablePid);
 				return destinationNames.All(x => displayKeys.Contains(x));
 			}
 
@@ -230,7 +231,7 @@ namespace DisconnectServices_1
 		{
 			bool Disconnected()
 			{
-				var allPrimaryKeys = nevionVideoIPathElement.GetTablePrimaryKeys(NevionIds.CurrentServicesTable);
+				var allPrimaryKeys = nevionVideoIPathElement.GetTablePrimaryKeys(NevionIds.NevionConnectionsTable.TableId);
 				return allPrimaryKeys.Any(key => disconnectedServices.Contains(key));
 			}
 

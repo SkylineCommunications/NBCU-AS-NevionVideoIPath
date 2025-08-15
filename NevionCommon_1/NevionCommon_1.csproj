@@ -46,6 +46,10 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Dialogs.cs" />
+    <Compile Include="DomIds.cs" />
+    <Compile Include="GQIUtils.cs" />
+    <Compile Include="NevionIds.cs" />
+    <Compile Include="TagIds.cs" />
     <Compile Include="Utils.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="NevionCommon_1.cs" />
@@ -77,11 +81,10 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
-  <Import Project="..\NevionSharedUtils\NevionSharedUtils.projitems" Label="Shared" />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties DisLinkId="1" DisProjectType="automationScriptProject" DisLinkedXmlFile="..\NevionCommon.xml" />
+      <UserProperties DisLinkedXmlFile="..\NevionCommon.xml" DisProjectType="automationScriptProject" DisLinkId="1" />
     </VisualStudio>
   </ProjectExtensions>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

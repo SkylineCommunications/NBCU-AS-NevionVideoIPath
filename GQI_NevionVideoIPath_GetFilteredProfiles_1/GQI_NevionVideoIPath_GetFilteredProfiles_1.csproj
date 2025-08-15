@@ -64,11 +64,16 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
   </ItemGroup>
-  <Import Project="..\NevionSharedUtils\NevionSharedUtils.projitems" Label="Shared" />
+  <ItemGroup>
+    <ProjectReference Include="..\NevionCommon_1\NevionCommon_1.csproj">
+      <Project>{6220c6bf-2c8d-4e82-9f4b-879d814e2dd9}</Project>
+      <Name>NevionCommon_1</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties DisLinkId="1" DisProjectType="automationScriptProject" DisLinkedXmlFile="..\GQI_NevionVideoIPath_GetFilteredProfiles.xml" />
+      <UserProperties DisLinkedXmlFile="..\GQI_NevionVideoIPath_GetFilteredProfiles.xml" DisProjectType="automationScriptProject" DisLinkId="1" />
     </VisualStudio>
   </ProjectExtensions>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
