@@ -127,7 +127,7 @@
 
 				foreach (var key in existingConnections.Keys)
 				{
-					connectionsTable.GetColumn<double?>(NevionConnectionsTable.Pid.Connection).SetValue(key, 1);
+					connectionsTable.GetColumn<double?>(NevionConnectionsTable.Pid.CancelButton).SetValue(key, 1);
 					Thread.Sleep(1000);
 				}
 

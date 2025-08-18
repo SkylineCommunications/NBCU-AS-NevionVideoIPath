@@ -24,7 +24,7 @@
 				public static readonly int Tags = 1514;
 				public static readonly int ProfileTags = 1516;
 				public static readonly int Revision = 1517;
-				public static readonly int Connection = 1515;
+				public static readonly int CancelButton = 1515;
 				public static readonly int Profile = 1518;
 			}
 
@@ -46,7 +46,7 @@
 				public static readonly int Tags = 13;
 				public static readonly int ProfileTags = 14;
 				public static readonly int Revision = 15;
-				public static readonly int Connection = 16;
+				public static readonly int CancelButton = 16;
 				public static readonly int Profile = 17;
 			}
 		}
