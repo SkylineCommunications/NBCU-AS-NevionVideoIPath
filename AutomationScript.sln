@@ -118,6 +118,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Edit Profiles_1", "Edit Pro
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Profiles", "Profiles", "{F5C42EE9-9471-4FB7-B4BA-E8C70F48D23A}"
 EndProject
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "NevionSharedUtils", "NevionSharedUtils\NevionSharedUtils.shproj", "{BBAB90A1-70A8-437A-82DF-52AFB77FA433}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "SharedLibrary", "SharedLibrary", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GQI_NevionVideoIPath_GetFilteredProfiles", "GQI_NevionVideoIPath_GetFilteredProfiles", "{ECE140F0-BB6B-47A6-BA06-8F352AD1C160}"
 	ProjectSection(SolutionItems) = preProject
 		GQI_NevionVideoIPath_GetFilteredProfiles.xml = GQI_NevionVideoIPath_GetFilteredProfiles.xml
@@ -236,6 +240,8 @@ Global
 		{B0EAD362-96EA-46BD-B016-251DD0BA0FBF} = {E026ADB5-E627-4C47-9C7E-23A217A00AA0}
 		{D9A4842A-8569-45AB-AD3F-84793340B307} = {B0EAD362-96EA-46BD-B016-251DD0BA0FBF}
 		{F5C42EE9-9471-4FB7-B4BA-E8C70F48D23A} = {593F7762-15D5-465B-81FD-475215695E3F}
+		{BBAB90A1-70A8-437A-82DF-52AFB77FA433} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{02EA681E-C7D8-13C7-8484-4AC65E1B71E8} = {593F7762-15D5-465B-81FD-475215695E3F}
 		{ECE140F0-BB6B-47A6-BA06-8F352AD1C160} = {A5F96D06-DEB8-49A8-B58A-74B24B264661}
 		{5F48EABA-6600-4199-BB42-9770EA3DB769} = {ECE140F0-BB6B-47A6-BA06-8F352AD1C160}
 		{833FEC06-8516-4B9A-939A-5DA911E77197} = {5F48EABA-6600-4199-BB42-9770EA3DB769}
@@ -248,5 +254,13 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D725A676-34B2-415E-B7A0-B037D947C360}
+	EndGlobalSection
+	GlobalSection(SharedMSBuildProjectFiles) = preSolution
+		NevionSharedUtils\NevionSharedUtils.projitems*{6220c6bf-2c8d-4e82-9f4b-879d814e2dd9}*SharedItemsImports = 4
+		NevionSharedUtils\NevionSharedUtils.projitems*{65c4c806-395e-44c3-badb-33a2575cacaf}*SharedItemsImports = 4
+		NevionSharedUtils\NevionSharedUtils.projitems*{833fec06-8516-4b9a-939a-5da911e77197}*SharedItemsImports = 4
+		NevionSharedUtils\NevionSharedUtils.projitems*{bbab90a1-70a8-437a-82df-52afb77fa433}*SharedItemsImports = 13
+		NevionSharedUtils\NevionSharedUtils.projitems*{f02e85c1-6334-40fc-99b0-f7c994792bb8}*SharedItemsImports = 4
+		NevionSharedUtils\NevionSharedUtils.projitems*{f43843cf-c0f5-4160-912a-baebf5cf2649}*SharedItemsImports = 4
 	EndGlobalSection
 EndGlobal
