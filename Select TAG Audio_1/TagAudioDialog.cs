@@ -102,6 +102,11 @@
 			var domHelper = new DomHelper(engine.SendSLNetMessages, DomIds.Lca_Access.ModuleId);
 			var userConfig = Utils.GetDOMPermissionsByUser(domHelper, "Destination", engine);
 			var outputsPermitted = userConfig.Destinations.Split(',').Select(x => Utils.RemoveBracketPrefix(x).Trim()).Distinct();
+			if (userConfig.Destinations == "ALL")
+			{
+				outputsPermitted = tagElement.GetTable(TAGMCSIds.OutputConfigTable.TablePid).GetDisplayKeys().Where(x => x.Contains("Routable"));
+			}
+
 			var defaultOutput = outputsPermitted.FirstOrDefault();
 			OutputSelectionDropDown.SetOptions(outputsPermitted);
 
@@ -191,6 +196,7 @@
 			var outputAudioLabel = defaultOutput + "/1";
 			var outputAudioFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.OutputAudiosTable.Pid.Label, Value = outputAudioLabel };
 			var firstOutputAudioRow = tagElement.GetTable(TAGMCSIds.OutputAudiosTable.TablePid).QueryData(new List<ColumnFilter> { outputAudioFilter }).FirstOrDefault();
+
 			var outputChannel = Convert.ToString(firstOutputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.Channel]);
 			currentPid = Convert.ToString(firstOutputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.OutputPID]);
 			var currentMask = Convert.ToInt32(firstOutputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.OutputMask]);
@@ -198,12 +204,19 @@
 			var defaultSourceRow = layoutChannelRows.First(x => Convert.ToInt32(x[TAGMCSIds.AllLayoutChannelsTable.Idx.Position]) == 1);
 			var defaultSource = Convert.ToString(defaultSourceRow[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelTitle]);
 			defaultSourceId = Convert.ToString(defaultSourceRow[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelSourceId]);
+
 			var channelsInLayout = layoutChannelRows
-				.Select(x => Convert.ToString(x[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelTitle]));
+				.Select(x => Convert.ToString(x[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelTitle])).Where(x => IsValidChannel(x)).ToList();
+
+			var outputHasChannel = IsValidChannel(outputChannel);
+			if (outputHasChannel)
+			{
+				channelsInLayout.Add(outputChannel);
+				defaultSourceId = Convert.ToString(firstOutputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.ChannelID]);
+			}
 
 			ChannelSelectionDropDown.SetOptions(channelsInLayout);
-
-			ChannelSelectionDropDown.Selected = String.IsNullOrWhiteSpace(outputChannel) || outputChannel == "None" ? defaultSource : outputChannel;
+			ChannelSelectionDropDown.Selected = outputHasChannel ? outputChannel : defaultSource;
 			ChannelAudioMaskDropDown.Selected = currentMask < 1 ? "None" : channelMaskingMap.FirstOrDefault(x => x.Value == currentMask).Key;
 		}
 
@@ -255,6 +268,11 @@
 
 			ChannelAudioEncodingDropDown.Options = audioDisplays;
 			ChannelAudioEncodingDropDown.Selected = currentPidFormat;
+		}
+
+		public bool IsValidChannel(string channel)
+		{
+			return !String.IsNullOrWhiteSpace(channel) && channel != "None";
 		}
 	}
 }
