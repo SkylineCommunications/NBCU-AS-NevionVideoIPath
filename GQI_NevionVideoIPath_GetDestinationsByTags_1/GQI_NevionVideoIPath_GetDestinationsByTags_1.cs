@@ -82,27 +82,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 			return rows;
 		}
 
-		var responses = dms.SendMessages(new GetUserFullNameMessage(), new GetInfoMessage(InfoType.SecurityInfo));
-		var systemUserName = responses?.OfType<GetUserFullNameResponseMessage>().FirstOrDefault()?.User.Trim();
-		var matchingByUsername = permissionList.FirstOrDefault(instance => instance.Username == systemUserName);
-
-		var matchingTagList = new HashSet<string>();
-		var matchingDestinationList = new HashSet<string>();
-		if (matchingByUsername != null)
-		{
-			matchingTagList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new HashSet<string>() : matchingByUsername.Tags.Split(',').ToHashSet();
-			matchingDestinationList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new HashSet<string>() : matchingByUsername.Destinations.Split(',').ToHashSet();
-		}
-
-		// Group Data
-		var securityResponse = responses?.OfType<GetUserInfoResponseMessage>().FirstOrDefault();
-
-		var groupNames = securityResponse.FindGroupNamesByUserName(systemUserName).ToList();
-		if (matchingByUsername == null && groupNames.Count > 0)
-		{
-			matchingTagList = GQIUtils.MatchingValuesByGroup(permissionList, groupNames, x => x.Tags).ToHashSet();
-			matchingDestinationList = GQIUtils.MatchingValuesByGroup(permissionList, groupNames, x => x.Destinations).ToHashSet();
-		}
+		GQIUtils.GetUserDestinationPermissions(dms, permissionList, out var matchingTagList, out var matchingDestinationList);
 
 		if (!matchingTagList.Any() && !matchingDestinationList.Any())
 		{

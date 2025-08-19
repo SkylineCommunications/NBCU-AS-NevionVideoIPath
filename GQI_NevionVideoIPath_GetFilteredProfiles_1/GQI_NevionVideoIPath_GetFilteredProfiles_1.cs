@@ -80,27 +80,8 @@ public class GetFilteredProfiles : IGQIDataSource, IGQIOnInit, IGQIInputArgument
 
 			if (nevionResponse != null)
 			{
-				var responses = _dms.SendMessages(new GetUserFullNameMessage(), new GetInfoMessage(InfoType.SecurityInfo));
-				var systemUserName = responses?.OfType<GetUserFullNameResponseMessage>().FirstOrDefault()?.User.Trim();
-
-				var matchingByUsername = valuesList.FirstOrDefault(instance => instance.Username == systemUserName);
-
-				if (matchingByUsername != null)
-				{
-					var matchingTagList = matchingByUsername.Tags.Split(',').ToList();
-					return AddRows(nevionResponse, matchingTagList);
-				}
-
-				// Group Data
-				var securityResponse = responses?.OfType<GetUserInfoResponseMessage>().FirstOrDefault();
-
-				var groupNames = securityResponse.FindGroupNamesByUserName(systemUserName).ToList();
-
-				if (groupNames.Count > 0)
-				{
-					var matchingTagsByGroup = MatchingTagsByGroup(valuesList, groupNames);
-					return AddRows(nevionResponse, matchingTagsByGroup);
-				}
+				GQIUtils.GetUserDestinationPermissions(_dms, valuesList, out var matchingTagList, out var matchingDestinationList);
+				return AddRows(nevionResponse, matchingTagList.ToList());
 			}
 
 			return new List<GQIRow>();
@@ -118,7 +99,7 @@ public class GetFilteredProfiles : IGQIDataSource, IGQIOnInit, IGQIInputArgument
 			return new List<GQIRow>();
 		}
 
-		var profilesTable = GQIUtils.GetTable(_dms, nevionResponse, 2401 , new[] { "forceFullTable=true" });
+		var profilesTable = GQIUtils.GetTable(_dms, nevionResponse, 2401, new[] { "forceFullTable=true" });
 
 		var rows = new List<GQIRow>();
 		for (int i = 0; i < profilesTable.Length; i++)
@@ -166,25 +147,6 @@ public class GetFilteredProfiles : IGQIDataSource, IGQIOnInit, IGQIInputArgument
 		}
 
 		return rows;
-	}
-
-	private List<string> MatchingTagsByGroup(List<GQIUtils.NevionProfileDomValues> valuesList, List<string> groupNames)
-	{
-		var tagList = new List<string>();
-		foreach (var group in groupNames)
-		{
-			var matchingGroup = valuesList.FirstOrDefault(x => x.Group == group);
-			if (matchingGroup != null)
-			{
-				if (!matchingGroup.Tags.IsNullOrEmpty())
-				{
-					var domTags = matchingGroup.Tags.Split(',').ToList();
-					tagList.AddRange(domTags);
-				}
-			}
-		}
-
-		return tagList.Distinct().ToList();
 	}
 
 	public class DomInstanceValues

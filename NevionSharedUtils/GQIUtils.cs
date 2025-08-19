@@ -128,6 +128,31 @@
 			return result.Distinct().ToList();
 		}
 
+		public static void GetUserDestinationPermissions(GQIDMS dms, List<NevionProfileDomValues> permissionList, out HashSet<string> matchingTagList, out HashSet<string> matchingDestinationList)
+		{
+			var responses = dms.SendMessages(new GetUserFullNameMessage(), new GetInfoMessage(InfoType.SecurityInfo));
+			var systemUserName = responses?.OfType<GetUserFullNameResponseMessage>().FirstOrDefault()?.User.Trim();
+			var matchingByUsername = permissionList.FirstOrDefault(instance => instance.Username == systemUserName);
+
+			matchingTagList = new HashSet<string>();
+			matchingDestinationList = new HashSet<string>();
+			if (matchingByUsername != null)
+			{
+				matchingTagList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new HashSet<string>() : matchingByUsername.Tags.Split(',').ToHashSet();
+				matchingDestinationList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new HashSet<string>() : matchingByUsername.Destinations.Split(',').ToHashSet();
+			}
+
+			// Group Data
+			var securityResponse = responses?.OfType<GetUserInfoResponseMessage>().FirstOrDefault();
+
+			var groupNames = securityResponse.FindGroupNamesByUserName(systemUserName).ToList();
+			if (matchingByUsername == null && groupNames.Count > 0)
+			{
+				matchingTagList = GQIUtils.MatchingValuesByGroup(permissionList, groupNames, x => x.Tags).ToHashSet();
+				matchingDestinationList = GQIUtils.MatchingValuesByGroup(permissionList, groupNames, x => x.Destinations).ToHashSet();
+			}
+		}
+
 		public class NevionProfileDomValues
 		{
 			public string Username { get; set; }
