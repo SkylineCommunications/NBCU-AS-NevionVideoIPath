@@ -253,6 +253,35 @@
 				}
 			}
 
+			var statusPidsChannelFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.ChannelStatusComponentsTable.Pid.ChannelID, Value = defaultSourceId };
+			var statusPidsAudioFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.ChannelStatusComponentsTable.Pid.ContentType, Value = Convert.ToString((int)TAGMCSIds.ChannelPidsTable.ChannelPidsType.Audio) };
+			var statusPidsAes3Filter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.ChannelStatusComponentsTable.Pid.ContentType, Value = Convert.ToString((int)TAGMCSIds.ChannelPidsTable.ChannelPidsType.AES3) };
+			var statusPidsAes67Filter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.ChannelStatusComponentsTable.Pid.ContentType, Value = Convert.ToString((int)TAGMCSIds.ChannelPidsTable.ChannelPidsType.AES67) };
+			var statusAudioRowsForChannel = tagElement.GetTable(TAGMCSIds.ChannelStatusComponentsTable.TablePid).QueryData(new List<ColumnFilter> { statusPidsChannelFilter, statusPidsAudioFilter, statusPidsAes3Filter, statusPidsAes67Filter });
+
+			foreach (var row in statusAudioRowsForChannel)
+			{
+				var pid = Convert.ToString(row[TAGMCSIds.ChannelStatusComponentsTable.Idx.PID]);
+				if (audioRowsForChannel.Any(r => Convert.ToString(r[TAGMCSIds.ChannelPidsTable.Idx.PID]) == pid))
+				{
+					continue;
+				}
+
+				var index = Convert.ToString(row[TAGMCSIds.ChannelStatusComponentsTable.Idx.Index]);
+				if (index == "-1")
+				{
+					index = "undefined";
+				}
+
+				var pidFormat = $"Aud({index}) PID {pid}";
+				audioDisplays.Add(pidFormat);
+
+				if (pid == currentPid)
+				{
+					currentPidFormat = pidFormat;
+				}
+			}
+
 			ChannelAudioEncodingDropDown.Options = audioDisplays;
 			ChannelAudioEncodingDropDown.Selected = currentPidFormat;
 		}
