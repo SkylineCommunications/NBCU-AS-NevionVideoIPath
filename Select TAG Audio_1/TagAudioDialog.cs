@@ -157,7 +157,7 @@
 
 				var outputConfig = outputConfigResponse.Output;
 				outputConfig.Processing.Audio[0].Mask = channelMaskingMap[ChannelAudioMaskDropDown.Selected];
-				outputConfig.Input.Audio[0].AudioIndex = audioId;
+				outputConfig.Input.Audio[0].AudioIndex = audioId == "undefined" ? string.Empty : audioId;
 				outputConfig.Input.Audio[0].AudioPid = pid;
 				outputConfig.Input.Audio[0].Channel = sourceId;
 				outputConfig.Processing.Muxing.Audio[0].Pid = pid;
