@@ -233,7 +233,7 @@
 			{
 				var language = Convert.ToString(row[TAGMCSIds.ChannelPidsTable.Idx.Language]);
 				var audioKey = Convert.ToString(row[TAGMCSIds.ChannelPidsTable.Idx.Index]);
-				var match = Regex.Match(audioKey, @"Audio/(\d+)", RegexOptions.IgnoreCase);
+				var match = Regex.Match(audioKey, @"(?:Audio|AES3|AES67)/(\d+)", RegexOptions.IgnoreCase);
 				var audioId = match.Success ? match.Groups[1].Value : "N/A";
 				var pid = Convert.ToString(row[TAGMCSIds.ChannelPidsTable.Idx.PID]);
 
