@@ -61,6 +61,7 @@ namespace DisconnectServices_1
 	using Newtonsoft.Json;
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS;
+	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.API_Models;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.InterApp.Messages;
 	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
@@ -199,6 +200,41 @@ namespace DisconnectServices_1
 				{
 					engine.Log($"Set Channel Message returned failure: {setResponse.ResponseMessage}");
 				}
+
+				ResetAudio(engine, tagInterAppSender, newChannelName);
+			}
+		}
+
+		private static void ResetAudio(IEngine engine, TagMCS interappSender, string channelName)
+		{
+			var outputName = Utils.RemoveBracketPrefix(channelName);
+
+			var response = interappSender.SendMessage(new GetOutputConfigRequest(outputName, MessageIdentifier.Name), TimeSpan.FromMinutes(2));
+			var outputResponse = response as GetOutputConfigResponse;
+			if (outputResponse == null)
+			{
+				var interappResponse = response as InterAppResponse;
+				engine.Log($"Get Output Message returned failure: {interappResponse.ResponseMessage}");
+				return;
+			}
+
+			var output = outputResponse.Output;
+			output.Processing.Audio[0].Mask = null;
+			output.Input.Audio[0].Channel = null;
+			output.Input.Audio[0].AudioPid = null;
+			output.Input.Audio[0].AudioIndex = null;
+			output.Processing.Muxing.Audio[0].Pid = null;
+
+			var setResponse = interappSender.SendMessage(new SetOutputConfigRequest { Output = output }, TimeSpan.FromMinutes(2)) as InterAppResponse;
+			if (setResponse == null)
+			{
+				engine.Log("No response on Set Output received");
+				return;
+			}
+
+			if (!setResponse.Success)
+			{
+				engine.Log($"Set Output Message returned failure: {setResponse.ResponseMessage}");
 			}
 		}
 
