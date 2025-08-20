@@ -6,14 +6,17 @@ using NevionSharedUtils;
 
 using Skyline.DataMiner.Analytics.GenericInterface;
 using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+using Skyline.DataMiner.Net.Helper;
 using Skyline.DataMiner.Net.Messages;
 
 [GQIMetaData(Name = "Nevion VideoIPath Get Destinations By Tags")]
 public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOnInit, IGQIInputArguments
 {
 	private readonly GQIStringArgument sourceTagsArgument = new GQIStringArgument("Source Tags") { IsRequired = false };
+	private readonly GQIStringArgument podArgument = new GQIStringArgument("Pod") { IsRequired = false };
 
 	private string sourceTags;
+	private string pod;
 
 	private GQIDMS dms;
 	private int dataminerId;
@@ -46,12 +49,13 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 
 	public GQIArgument[] GetInputArguments()
 	{
-		return new GQIArgument[] { sourceTagsArgument };
+		return new GQIArgument[] { sourceTagsArgument, podArgument };
 	}
 
 	public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
 	{
 		sourceTags = args.GetArgumentValue<string>(sourceTagsArgument);
+		pod = args.GetArgumentValue<string>(podArgument);
 		return new OnArgumentsProcessedOutputArgs();
 	}
 
@@ -127,6 +131,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 	{
 		var rows = new List<GQIRow>();
 		bool allDestinations = allowedDestinations.Count == 1 && allowedDestinations.First().Equals("ALL", StringComparison.OrdinalIgnoreCase);
+		bool allPods = pod.IsNullOrEmpty() || pod.Equals("ALL", StringComparison.OrdinalIgnoreCase);
 		bool filterBySourceTags = !String.IsNullOrWhiteSpace(sourceTags);
 		bool sourceIsSrt = filterBySourceTags && sourceTags.Contains("SRT");
 
@@ -150,6 +155,12 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 			}
 
 			if (!allDestinations && !allowedDestinations.Contains(destinationRow.DescriptorLabel))
+			{
+				continue;
+			}
+
+			var destinationPod = destinationRow.DescriptorLabel.Replace("[VIP RTP]", string.Empty).Replace("[VIP SRT]", string.Empty).Trim();
+			if (!allPods && destinationPod != pod)
 			{
 				continue;
 			}

@@ -87,14 +87,15 @@ public class GQI_NevionVideoIPath_GetPodsByUser : IGQIDataSource, IGQIOnInit
 
 			var matchingTag = matchingTagList.Any(userTag => destinationTags.Contains(userTag) || userTag.Equals("ALL", StringComparison.OrdinalIgnoreCase));
 			var matchingDestination = matchingDestinationList.Any(destination => destination == destinationLabel || destination.Equals("ALL", StringComparison.OrdinalIgnoreCase));
-			if (matchingTag || matchingDestination)
+			if (matchingTag && matchingDestination)
 			{
 				var pod = destinationLabel.Replace("[VIP RTP]", string.Empty).Replace("[VIP SRT]", string.Empty).Trim();
 				pods.Add(pod);
 			}
 		}
 
-		var distinctPods = pods.Distinct();
+		pods.Add("ALL");
+		var distinctPods = pods.Distinct().OrderBy(p => p);
 		foreach (var pod in distinctPods)
 		{
 			gqiRows.Add(new GQIRow(new[]
