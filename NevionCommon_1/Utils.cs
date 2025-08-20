@@ -8,7 +8,7 @@
 	using System.Threading;
 
 	using DomIds;
-
+	using NevionSharedUtils;
 	using Skyline.DataMiner.Analytics.GenericInterface;
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
@@ -103,7 +103,7 @@
 		{
 			var layoutTable = tagMcsElement.GetTable(tableId);
 			var layoutKeys = layoutTable.GetDisplayKeys();
-			var matchingLayout = layoutKeys.FirstOrDefault(x => x.Contains(name));
+			var matchingLayout = layoutKeys.FirstOrDefault(x => x.Equals(name));
 			var layoutId = layoutTable.GetPrimaryKey(matchingLayout);
 			return layoutId;
 		}
