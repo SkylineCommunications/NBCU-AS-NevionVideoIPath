@@ -27,7 +27,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		dms = args.DMS;
 		domHelper = new DomHelper(dms.SendMessages, DomIds.Lca_Access.ModuleId);
 		_logger = args.Logger;
-		GetNevionVideoIPathElement();
+		GQIUtils.GetNevionAndTagElement(dms, out dataminerId, out elementId, out _, out _);
 
 		return new OnInitOutputArgs();
 	}
@@ -90,30 +90,6 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		}
 
 		return GetDestinationByTagRows(matchingTagList, matchingDestinationList);
-	}
-
-	private void GetNevionVideoIPathElement()
-	{
-		dataminerId = -1;
-		elementId = -1;
-
-		var infoMessage = new GetInfoMessage { Type = InfoType.ElementInfo };
-		var infoMessageResponses = dms.SendMessages(infoMessage);
-		foreach (var response in infoMessageResponses)
-		{
-			var elementInfoEventMessage = (ElementInfoEventMessage)response;
-			if (elementInfoEventMessage == null)
-			{
-				continue;
-			}
-
-			if (elementInfoEventMessage?.Protocol == "Nevion Video iPath" && elementInfoEventMessage?.ProtocolVersion == "Production")
-			{
-				dataminerId = elementInfoEventMessage.DataMinerID;
-				elementId = elementInfoEventMessage.ElementID;
-				break;
-			}
-		}
 	}
 
 	private List<GQIRow> GetDestinationByTagRows(HashSet<string> tagFilter, HashSet<string> allowedDestinations)

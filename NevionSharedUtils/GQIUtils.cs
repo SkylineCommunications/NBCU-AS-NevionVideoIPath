@@ -94,9 +94,9 @@
 			return valuesList;
 		}
 
-		public static LiteElementInfoEvent GetNevionElement(GQIDMS _dms, string nevionElementId)
+		public static LiteElementInfoEvent GetElement(GQIDMS _dms, string elementId)
 		{
-			var sElementId = nevionElementId.Split('/');
+			var sElementId = elementId.Split('/');
 			var nevionElementRequest = new GetLiteElementInfo
 			{
 				DataMinerID = Convert.ToInt32(sElementId[0]),
@@ -139,7 +139,7 @@
 			if (matchingByUsername != null)
 			{
 				matchingTagList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new HashSet<string>() : matchingByUsername.Tags.Split(',').ToHashSet();
-				matchingDestinationList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new HashSet<string>() : matchingByUsername.Destinations.Split(',').ToHashSet();
+				matchingDestinationList = String.IsNullOrEmpty(matchingByUsername.Destinations) ? new HashSet<string>() : matchingByUsername.Destinations.Split(',').ToHashSet();
 			}
 
 			// Group Data
@@ -150,6 +150,46 @@
 			{
 				matchingTagList = GQIUtils.MatchingValuesByGroup(permissionList, groupNames, x => x.Tags).ToHashSet();
 				matchingDestinationList = GQIUtils.MatchingValuesByGroup(permissionList, groupNames, x => x.Destinations).ToHashSet();
+			}
+		}
+
+		public static void GetNevionAndTagElement(GQIDMS dms, out int nevionDataminerId, out int nevionElementId, out int tagDataminerId, out int tagElementId)
+		{
+			nevionDataminerId = -1;
+			nevionElementId = -1;
+			tagDataminerId = -1;
+			tagElementId = -1;
+			bool nevionFound = false;
+			bool tagFound = false;
+
+			var infoMessage = new GetInfoMessage { Type = InfoType.ElementInfo };
+			var infoMessageResponses = dms.SendMessages(infoMessage);
+			foreach (var response in infoMessageResponses)
+			{
+				var elementInfoEventMessage = (ElementInfoEventMessage)response;
+				if (elementInfoEventMessage == null)
+				{
+					continue;
+				}
+
+				if (elementInfoEventMessage.Protocol == "Nevion Video iPath" && elementInfoEventMessage.ProtocolVersion == "Production" && elementInfoEventMessage.State == ElementState.Active && !nevionFound)
+				{
+					nevionDataminerId = elementInfoEventMessage.DataMinerID;
+					nevionElementId = elementInfoEventMessage.ElementID;
+					nevionFound = true;
+				}
+
+				if (elementInfoEventMessage.Protocol == "TAG Video Systems Media Control System (MCS)" && elementInfoEventMessage.ProtocolVersion == "Production" && elementInfoEventMessage.State == ElementState.Active && !tagFound)
+				{
+					tagDataminerId = elementInfoEventMessage.DataMinerID;
+					tagElementId = elementInfoEventMessage.ElementID;
+					tagFound = true;
+				}
+
+				if (nevionFound && tagFound)
+				{
+					break;
+				}
 			}
 		}
 
