@@ -149,6 +149,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Actions", "Actions", "{7819
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NevionCommon_1", "NevionCommon_1\NevionCommon_1.csproj", "{6220C6BF-2C8D-4E82-9F4B-879D814E2DD9}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GQI_NevionVideoIPath_GetPodsByUser", "GQI_NevionVideoIPath_GetPodsByUser", "{08BDF0EA-0A50-4FF6-A3E7-24A3EECCB1C0}"
+	ProjectSection(SolutionItems) = preProject
+		GQI_NevionVideoIPath_GetPodsByUser.xml = GQI_NevionVideoIPath_GetPodsByUser.xml
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GQI_NevionVideoIPath_GetPodsByUser_1", "GQI_NevionVideoIPath_GetPodsByUser_1\GQI_NevionVideoIPath_GetPodsByUser_1.csproj", "{B0C6DEB9-0B86-40ED-9A48-1427DDC2B7AB}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Actions", "Actions", "{F19C81E5-975C-4975-B818-5A740C8723E9}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -203,6 +212,10 @@ Global
 		{6220C6BF-2C8D-4E82-9F4B-879D814E2DD9}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{6220C6BF-2C8D-4E82-9F4B-879D814E2DD9}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{6220C6BF-2C8D-4E82-9F4B-879D814E2DD9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0C6DEB9-0B86-40ED-9A48-1427DDC2B7AB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0C6DEB9-0B86-40ED-9A48-1427DDC2B7AB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0C6DEB9-0B86-40ED-9A48-1427DDC2B7AB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0C6DEB9-0B86-40ED-9A48-1427DDC2B7AB}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -251,6 +264,9 @@ Global
 		{CB765D91-EC28-4B1B-9E66-E5F6F2B3C69B} = {593F7762-15D5-465B-81FD-475215695E3F}
 		{78198113-3B49-4BAE-BAFD-A93012808907} = {CB765D91-EC28-4B1B-9E66-E5F6F2B3C69B}
 		{6220C6BF-2C8D-4E82-9F4B-879D814E2DD9} = {78198113-3B49-4BAE-BAFD-A93012808907}
+		{08BDF0EA-0A50-4FF6-A3E7-24A3EECCB1C0} = {A5F96D06-DEB8-49A8-B58A-74B24B264661}
+		{B0C6DEB9-0B86-40ED-9A48-1427DDC2B7AB} = {F19C81E5-975C-4975-B818-5A740C8723E9}
+		{F19C81E5-975C-4975-B818-5A740C8723E9} = {08BDF0EA-0A50-4FF6-A3E7-24A3EECCB1C0}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D725A676-34B2-415E-B7A0-B037D947C360}
@@ -259,6 +275,7 @@ Global
 		NevionSharedUtils\NevionSharedUtils.projitems*{6220c6bf-2c8d-4e82-9f4b-879d814e2dd9}*SharedItemsImports = 4
 		NevionSharedUtils\NevionSharedUtils.projitems*{65c4c806-395e-44c3-badb-33a2575cacaf}*SharedItemsImports = 4
 		NevionSharedUtils\NevionSharedUtils.projitems*{833fec06-8516-4b9a-939a-5da911e77197}*SharedItemsImports = 4
+		NevionSharedUtils\NevionSharedUtils.projitems*{b0c6deb9-0b86-40ed-9a48-1427ddc2b7ab}*SharedItemsImports = 4
 		NevionSharedUtils\NevionSharedUtils.projitems*{bbab90a1-70a8-437a-82df-52afb77fa433}*SharedItemsImports = 13
 		NevionSharedUtils\NevionSharedUtils.projitems*{f02e85c1-6334-40fc-99b0-f7c994792bb8}*SharedItemsImports = 4
 		NevionSharedUtils\NevionSharedUtils.projitems*{f43843cf-c0f5-4160-912a-baebf5cf2649}*SharedItemsImports = 4

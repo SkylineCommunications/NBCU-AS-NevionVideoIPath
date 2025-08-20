@@ -39,10 +39,21 @@
 			}
 		}
 
-
 		public class ChannelConfigTable
 		{
 			public static readonly int TablePid = 2100;
+
+			public class Pid
+			{
+				public static readonly int Index = 2101;
+				public static readonly int Label = 2102;
+			}
+
+			public class Idx
+			{
+				public static readonly int Index = 0;
+				public static readonly int Label = 1;
+			}
 		}
 
 		public class OutputConfigTable
