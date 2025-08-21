@@ -36,12 +36,12 @@ id: 87ed8d86-3260-444b-adb8-9b0e26853bb8
 #   Max length: 100 characters.
 #   Cannot contain newlines.
 #   Cannot contain leading or trailing whitespace characters.
-title: NevionVideoIPath
+title: Fax Ins Scripts
 # [Optional]
 # General information about the Catalog item.
 #   Max length: 100,000 characters
 # Currently not shown in the Catalog UI but will be supported in the near future.
-short_description: No description available
+short_description: Scripts for the Fax Ins Solutions
 # [Optional]
 # A valid URL that points to the source code.
 #   A valid URL
