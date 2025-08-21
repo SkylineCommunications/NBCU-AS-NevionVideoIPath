@@ -39,7 +39,6 @@
 			}
 		}
 
-
 		public class ChannelConfigTable
 		{
 			public static readonly int TablePid = 2100;
@@ -61,8 +60,57 @@
 
 			public enum ChannelPidsType
 			{
+				NA = -1,
+
+				Other = 0,
+
+				Video = 1,
+
 				Audio = 2,
+
+				Subtitles = 3,
+
+				Teletext = 4,
+
+				PCR = 5,
+
+				PMT = 6,
+
+				ECM = 7,
+
+				EMM = 8,
+
+				DSM_CC = 9,
+
 				AES3 = 10,
+
+				ID3_Metadata = 11,
+
+				ST_2038 = 12,
+
+				Metadata = 13,
+
+				AIT = 14,
+
+				PAT = 15,
+
+				SDT = 16,
+
+				EIT = 17,
+
+				CAT = 18,
+
+				AES67 = 19,
+
+				NIT = 20,
+
+				TDT = 21,
+
+				ID3 = 22,
+
+				ETT = 23,
+
+				ATSC_Tables = 24,
 			}
 
 			public class Idx
@@ -193,6 +241,37 @@
 				public static readonly int Output = 3404;
 				public static readonly int LayoutID = 3405;
 				public static readonly int Layout = 3406;
+			}
+		}
+
+		public static class ChannelStatusComponentsTable
+		{
+			public static readonly int TablePid = 7100;
+
+			public static class Idx
+			{
+				public static readonly int Id = 0;
+				public static readonly int DisplayKey = 1;
+				public static readonly int PID = 2;
+				public static readonly int Bitrate = 3;
+				public static readonly int Monitored = 4;
+				public static readonly int ContentType = 5;
+				public static readonly int Index = 6;
+				public static readonly int ChannelID = 7;
+				public static readonly int ParentPid = 8;
+			}
+
+			public static class Pid
+			{
+				public static readonly int Id = 7101;
+				public static readonly int DisplayKey = 7102;
+				public static readonly int PID = 7103;
+				public static readonly int Bitrate = 7104;
+				public static readonly int Monitored = 7105;
+				public static readonly int ContentType = 7106;
+				public static readonly int Index = 7107;
+				public static readonly int ChannelID = 7108;
+				public static readonly int ParentPid = 7109;
 			}
 		}
 	}

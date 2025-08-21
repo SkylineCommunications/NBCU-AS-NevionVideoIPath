@@ -8,11 +8,12 @@
 	using System.Threading;
 
 	using DomIds;
-
+	using NevionSharedUtils;
 	using Skyline.DataMiner.Analytics.GenericInterface;
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+	using Skyline.DataMiner.Net.Helper;
 	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.Sections;
@@ -103,7 +104,12 @@
 		{
 			var layoutTable = tagMcsElement.GetTable(tableId);
 			var layoutKeys = layoutTable.GetDisplayKeys();
-			var matchingLayout = layoutKeys.FirstOrDefault(x => x.Contains(name));
+			var matchingLayout = layoutKeys.FirstOrDefault(x => x.Equals(name));
+			if (matchingLayout.IsNullOrEmpty())
+			{
+				matchingLayout = layoutKeys.FirstOrDefault(x => x.Contains(name));
+			}
+
 			var layoutId = layoutTable.GetPrimaryKey(matchingLayout);
 			return layoutId;
 		}

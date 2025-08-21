@@ -102,6 +102,11 @@
 			var domHelper = new DomHelper(engine.SendSLNetMessages, DomIds.Lca_Access.ModuleId);
 			var userConfig = Utils.GetDOMPermissionsByUser(domHelper, "Destination", engine);
 			var outputsPermitted = userConfig.Destinations.Split(',').Select(x => Utils.RemoveBracketPrefix(x).Trim()).Distinct();
+			if (userConfig.Destinations == "ALL")
+			{
+				outputsPermitted = tagElement.GetTable(TAGMCSIds.OutputConfigTable.TablePid).GetDisplayKeys().Where(x => x.Contains("Routable"));
+			}
+
 			var defaultOutput = outputsPermitted.FirstOrDefault();
 			OutputSelectionDropDown.SetOptions(outputsPermitted);
 
@@ -152,7 +157,7 @@
 
 				var outputConfig = outputConfigResponse.Output;
 				outputConfig.Processing.Audio[0].Mask = channelMaskingMap[ChannelAudioMaskDropDown.Selected];
-				outputConfig.Input.Audio[0].AudioIndex = audioId;
+				outputConfig.Input.Audio[0].AudioIndex = audioId == "undefined" ? string.Empty : audioId;
 				outputConfig.Input.Audio[0].AudioPid = pid;
 				outputConfig.Input.Audio[0].Channel = sourceId;
 				outputConfig.Processing.Muxing.Audio[0].Pid = pid;
@@ -191,6 +196,7 @@
 			var outputAudioLabel = defaultOutput + "/1";
 			var outputAudioFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.OutputAudiosTable.Pid.Label, Value = outputAudioLabel };
 			var firstOutputAudioRow = tagElement.GetTable(TAGMCSIds.OutputAudiosTable.TablePid).QueryData(new List<ColumnFilter> { outputAudioFilter }).FirstOrDefault();
+
 			var outputChannel = Convert.ToString(firstOutputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.Channel]);
 			currentPid = Convert.ToString(firstOutputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.OutputPID]);
 			var currentMask = Convert.ToInt32(firstOutputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.OutputMask]);
@@ -198,12 +204,19 @@
 			var defaultSourceRow = layoutChannelRows.First(x => Convert.ToInt32(x[TAGMCSIds.AllLayoutChannelsTable.Idx.Position]) == 1);
 			var defaultSource = Convert.ToString(defaultSourceRow[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelTitle]);
 			defaultSourceId = Convert.ToString(defaultSourceRow[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelSourceId]);
+
 			var channelsInLayout = layoutChannelRows
-				.Select(x => Convert.ToString(x[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelTitle]));
+				.Select(x => Convert.ToString(x[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelTitle])).Where(x => IsValidChannel(x)).ToList();
+
+			var outputHasChannel = IsValidChannel(outputChannel);
+			if (outputHasChannel)
+			{
+				channelsInLayout.Add(outputChannel);
+				defaultSourceId = Convert.ToString(firstOutputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.ChannelID]);
+			}
 
 			ChannelSelectionDropDown.SetOptions(channelsInLayout);
-
-			ChannelSelectionDropDown.Selected = String.IsNullOrWhiteSpace(outputChannel) || outputChannel == "None" ? defaultSource : outputChannel;
+			ChannelSelectionDropDown.Selected = outputHasChannel ? outputChannel : defaultSource;
 			ChannelAudioMaskDropDown.Selected = currentMask < 1 ? "None" : channelMaskingMap.FirstOrDefault(x => x.Value == currentMask).Key;
 		}
 
@@ -220,7 +233,7 @@
 			{
 				var language = Convert.ToString(row[TAGMCSIds.ChannelPidsTable.Idx.Language]);
 				var audioKey = Convert.ToString(row[TAGMCSIds.ChannelPidsTable.Idx.Index]);
-				var match = Regex.Match(audioKey, @"Audio/(\d+)", RegexOptions.IgnoreCase);
+				var match = Regex.Match(audioKey, @"(?:Audio|AES3|AES67)/(\d+)", RegexOptions.IgnoreCase);
 				var audioId = match.Success ? match.Groups[1].Value : "N/A";
 				var pid = Convert.ToString(row[TAGMCSIds.ChannelPidsTable.Idx.PID]);
 
@@ -253,8 +266,42 @@
 				}
 			}
 
+			var statusPidsChannelFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.ChannelStatusComponentsTable.Pid.ChannelID, Value = defaultSourceId };
+			var statusPidsAudioFilter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.ChannelStatusComponentsTable.Pid.ContentType, Value = Convert.ToString((int)TAGMCSIds.ChannelPidsTable.ChannelPidsType.Audio) };
+			var statusPidsAes3Filter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.ChannelStatusComponentsTable.Pid.ContentType, Value = Convert.ToString((int)TAGMCSIds.ChannelPidsTable.ChannelPidsType.AES3) };
+			var statusPidsAes67Filter = new ColumnFilter { ComparisonOperator = ComparisonOperator.Equal, Pid = TAGMCSIds.ChannelStatusComponentsTable.Pid.ContentType, Value = Convert.ToString((int)TAGMCSIds.ChannelPidsTable.ChannelPidsType.AES67) };
+			var statusAudioRowsForChannel = tagElement.GetTable(TAGMCSIds.ChannelStatusComponentsTable.TablePid).QueryData(new List<ColumnFilter> { statusPidsChannelFilter, statusPidsAudioFilter, statusPidsAes3Filter, statusPidsAes67Filter });
+
+			foreach (var row in statusAudioRowsForChannel)
+			{
+				var pid = Convert.ToString(row[TAGMCSIds.ChannelStatusComponentsTable.Idx.PID]);
+				if (audioRowsForChannel.Any(r => Convert.ToString(r[TAGMCSIds.ChannelPidsTable.Idx.PID]) == pid))
+				{
+					continue;
+				}
+
+				var index = Convert.ToString(row[TAGMCSIds.ChannelStatusComponentsTable.Idx.Index]);
+				if (index == "-1")
+				{
+					index = "undefined";
+				}
+
+				var pidFormat = $"Aud({index}) PID {pid}";
+				audioDisplays.Add(pidFormat);
+
+				if (pid == currentPid)
+				{
+					currentPidFormat = pidFormat;
+				}
+			}
+
 			ChannelAudioEncodingDropDown.Options = audioDisplays;
 			ChannelAudioEncodingDropDown.Selected = currentPidFormat;
+		}
+
+		public bool IsValidChannel(string channel)
+		{
+			return !String.IsNullOrWhiteSpace(channel) && channel != "None";
 		}
 	}
 }
