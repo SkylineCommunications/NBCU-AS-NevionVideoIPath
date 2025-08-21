@@ -67,7 +67,7 @@ public class GQI_NevionVideoIPath_GetPodsByUser : IGQIDataSource, IGQIOnInit
 		return new GQIPage(gqiRows.ToArray());
 	}
 
-	public List<GQIRow> BuildRows(object[][] destinationTable, object[][] channelTable, HashSet<string> matchingTagList, HashSet<string> matchingDestinationList)
+	private List<GQIRow> BuildRows(object[][] destinationTable, object[][] channelTable, HashSet<string> matchingTagList, HashSet<string> matchingDestinationList)
 	{
 		var pods = new List<string>();
 		var gqiRows = new List<GQIRow>();
