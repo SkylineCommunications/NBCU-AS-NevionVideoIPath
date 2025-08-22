@@ -160,7 +160,7 @@
 				outputConfig.Input.Audio[0].AudioIndex = audioId == "undefined" ? string.Empty : audioId;
 				outputConfig.Input.Audio[0].AudioPid = pid;
 				outputConfig.Input.Audio[0].Channel = sourceId;
-				outputConfig.Processing.Muxing.Audio[0].Pid = pid;
+				outputConfig.Processing.Muxing.Audio[0].Pid = "202";
 
 				var setMessage = new SetOutputConfigRequest
 				{
@@ -198,7 +198,7 @@
 			var firstOutputAudioRow = tagElement.GetTable(TAGMCSIds.OutputAudiosTable.TablePid).QueryData(new List<ColumnFilter> { outputAudioFilter }).FirstOrDefault();
 
 			var outputChannel = Convert.ToString(firstOutputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.Channel]);
-			currentPid = Convert.ToString(firstOutputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.OutputPID]);
+			currentPid = Convert.ToString(firstOutputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.InputPID]);
 			var currentMask = Convert.ToInt32(firstOutputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.OutputMask]);
 
 			var defaultSourceRow = layoutChannelRows.First(x => Convert.ToInt32(x[TAGMCSIds.AllLayoutChannelsTable.Idx.Position]) == 1);
