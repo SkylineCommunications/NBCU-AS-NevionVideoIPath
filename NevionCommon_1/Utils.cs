@@ -95,7 +95,28 @@
 			}
 
 			var systemUserName = engine.UserLoginName;
+			var userInfo = engine.SendSLNetMessage(new GetInfoMessage(InfoType.SecurityInfo)).FirstOrDefault() as GetUserInfoResponseMessage;
+			var userGroups = userInfo.FindGroupNamesByUserName(systemUserName);
 			var matchingByUsername = valuesList.FirstOrDefault(instance => instance.Username == systemUserName);
+			if (matchingByUsername == null)
+			{
+				var tags = string.Empty;
+				var destinations = string.Empty;
+				foreach (var group in userGroups)
+				{
+					var groupPermissions = valuesList.FirstOrDefault(instance => instance.Group == group);
+					if (groupPermissions != null)
+					{
+						tags = $"{tags},{groupPermissions.Tags}";
+						destinations = $"{destinations},{groupPermissions.Destinations}";
+					}
+				}
+
+				tags = tags.Contains("ALL") ? "ALL" : String.Join(",", tags.Split(',').Distinct());
+				destinations = destinations.Contains("ALL") ? "ALL" : String.Join(",", destinations.Split(',').Distinct());
+
+				matchingByUsername = new NevionProfileDomValues { Tags = tags, Destinations = destinations };
+			}
 
 			return matchingByUsername;
 		}

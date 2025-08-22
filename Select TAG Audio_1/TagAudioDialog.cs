@@ -101,7 +101,7 @@
 		{
 			var domHelper = new DomHelper(engine.SendSLNetMessages, DomIds.Lca_Access.ModuleId);
 			var userConfig = Utils.GetDOMPermissionsByUser(domHelper, "Destination", engine);
-			var outputsPermitted = userConfig.Destinations.Split(',').Select(x => Utils.RemoveBracketPrefix(x).Trim()).Distinct();
+			var outputsPermitted = userConfig.Destinations.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries).Select(x => Utils.RemoveBracketPrefix(x).Trim()).Distinct();
 			if (userConfig.Destinations == "ALL")
 			{
 				outputsPermitted = tagElement.GetTable(TAGMCSIds.OutputConfigTable.TablePid).GetDisplayKeys().Where(x => x.Contains("Routable"));
