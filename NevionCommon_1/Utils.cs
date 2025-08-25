@@ -11,6 +11,8 @@
 	using NevionSharedUtils;
 	using Skyline.DataMiner.Analytics.GenericInterface;
 	using Skyline.DataMiner.Automation;
+	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS;
+	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.InterApp.Messages;
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
 	using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
 	using Skyline.DataMiner.Net.Helper;
@@ -133,6 +135,37 @@
 
 			var layoutId = layoutTable.GetPrimaryKey(matchingLayout);
 			return layoutId;
+		}
+
+		public static void ResetAudio(IEngine engine, TagMCS interappSender, string outputId)
+		{
+			var response = interappSender.SendMessage(new GetOutputConfigRequest(outputId, MessageIdentifier.ID), TimeSpan.FromMinutes(2));
+			var outputResponse = response as GetOutputConfigResponse;
+			if (outputResponse == null)
+			{
+				var interappResponse = response as InterAppResponse;
+				engine.Log($"Get Output Message returned failure: {interappResponse.ResponseMessage}");
+				return;
+			}
+
+			var output = outputResponse.Output;
+			output.Processing.Audio[0].Mask = null;
+			output.Input.Audio[0].Channel = null;
+			output.Input.Audio[0].AudioPid = null;
+			output.Input.Audio[0].AudioIndex = null;
+			output.Processing.Muxing.Audio[0].Pid = null;
+
+			var setResponse = interappSender.SendMessage(new SetOutputConfigRequest { Output = output }, TimeSpan.FromMinutes(2)) as InterAppResponse;
+			if (setResponse == null)
+			{
+				engine.Log("No response on Set Output received");
+				return;
+			}
+
+			if (!setResponse.Success)
+			{
+				engine.Log($"Set Output Message returned failure: {setResponse.ResponseMessage}");
+			}
 		}
 	}
 }

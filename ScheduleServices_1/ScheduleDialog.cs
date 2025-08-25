@@ -20,6 +20,7 @@
 	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Net.Scheduling;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
 	using static NevionSharedUtils.NevionIds;
@@ -177,6 +178,8 @@
 				UpdateLayout(tagMcs, 1, layoutResponse, channelId, errorBuilder);
 				UpdateOutput(tagMcsElement, tagMcs, layoutName, channelId, errorBuilder);
 
+				CreateScheduledTask(tagMcsElement, channelId);
+
 				if (errorBuilder.Length != 0)
 				{
 					ErrorMessageDialog.ShowMessage(engine, errorBuilder.ToString());
@@ -205,6 +208,10 @@
 
 				var outputConfig = outputConfigResponse.Output;
 				outputConfig.Input.Audio[0].Channel = channelId;
+				outputConfig.Processing.Audio[0].Mask = null;
+				outputConfig.Input.Audio[0].AudioPid = null;
+				outputConfig.Input.Audio[0].AudioIndex = null;
+				outputConfig.Processing.Muxing.Audio[0].Pid = null;
 
 				var setMessage = new SetOutputConfigRequest
 				{
@@ -223,6 +230,67 @@
 				errorBuilder.AppendLine($"Script exception while changing the output source. Please contact Skyline: {e}");
 				Engine.Log($"UpdateOutput|Failed to update channel output: {e}");
 			}
+		}
+
+		private void CreateScheduledTask(IDmsElement tag, string channelId)
+		{
+			var scriptName = "Cleanup TAG Audio Task";
+
+			var scheduler = dms.GetAgent(tag.AgentId).Scheduler;
+
+			var oldTask = scheduler.GetTasks().FirstOrDefault(x => x.TaskName == channelId);
+			if (oldTask != null)
+			{
+				scheduler.DeleteTask(oldTask.Id);
+			}
+
+			if (!End.HasValue)
+			{
+				return;
+			}
+
+			if (!dms.ScriptExists(scriptName))
+			{
+				throw new ScriptNotFoundException($"Failed to find \"{scriptName}\" Script");
+			}
+
+			var startTime = End.Value.ToString("HH:mm:ss");
+			var taskType = "once";
+			var interval = "1";
+
+			var task = new object[]
+			{
+				new object[] // General Info
+				{
+					new[]
+					{
+						channelId,
+						string.Empty,
+						string.Empty,
+						startTime,
+						taskType,
+						interval,
+						string.Empty,
+						"Cleanup TAG Audio",
+						"TRUE",
+						string.Empty,
+						string.Empty,
+					},
+				},
+				new object[] // Repeat Info
+				{
+					new[]
+					{
+						"automation",
+						scriptName,
+						"CHECKSET:FALSE",
+						"DEFER:FALSE",
+					},
+				},
+				new object[] {}, // Final Actions
+			};
+
+			scheduler.CreateTask(task);
 		}
 
 		private void ChangeChannelLabelRequest(TagMCS interAppTagMcs, StringBuilder errorBuilder, string channelId, string newChannelLabel)
