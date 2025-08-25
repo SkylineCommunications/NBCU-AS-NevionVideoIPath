@@ -165,6 +165,8 @@
 				var destinationName = DestinationNames[0];
 				var layoutName = Utils.RemoveBracketPrefix(destinationName);
 
+				var isRTP = destinationName.StartsWith("[VIP RTP]");
+
 				var newChannelName = $"{SourceName}->{DestinationNames[0]}";
 
 				string channelId = Utils.GetIdFromName(tagMcsElement, TAGMCSIds.ChannelConfigTable.TablePid, destinationName);
@@ -178,7 +180,7 @@
 				var layoutResponse = tagMcs.SendMessage(getLayoutRequest, TimeSpan.FromSeconds(30)) as GetLayoutConfigResponse;
 
 				UpdateLayout(tagMcs, 1, layoutResponse, channelId, errorBuilder);
-				UpdateOutput(tagMcsElement, tagMcs, layoutName, channelId, errorBuilder);
+				UpdateOutput(tagMcsElement, tagMcs, layoutName, channelId, isRTP, errorBuilder);
 
 				CreateScheduledTask(tagMcsElement, channelId);
 
@@ -194,7 +196,7 @@
 			}
 		}
 
-		private void UpdateOutput(IDmsElement tagMcsElement, TagMCS tagMcs, string layoutName, string channelId, StringBuilder errorBuilder)
+		private void UpdateOutput(IDmsElement tagMcsElement, TagMCS tagMcs, string layoutName, string channelId, bool isRTP, StringBuilder errorBuilder)
 		{
 			try
 			{
@@ -215,6 +217,12 @@
 				{
 					pid = Convert.ToString(component.Pid);
 					audioId = Convert.ToString(component.Index);
+				}
+
+				if (isRTP)
+				{
+					pid = "50";
+					audioId = "1";
 				}
 
 				var outputConfig = outputConfigResponse.Output;
