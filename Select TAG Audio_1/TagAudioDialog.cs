@@ -275,7 +275,7 @@
 			foreach (var row in statusAudioRowsForChannel)
 			{
 				var pid = Convert.ToString(row[TAGMCSIds.ChannelStatusComponentsTable.Idx.PID]);
-				if (audioRowsForChannel.Any(r => Convert.ToString(r[TAGMCSIds.ChannelPidsTable.Idx.PID]) == pid))
+				if (audioRowsForChannel.Any(r => Convert.ToString(r[TAGMCSIds.ChannelPidsTable.Idx.PID]) == pid && Convert.ToString(r[TAGMCSIds.ChannelPidsTable.Idx.ChannelId]) == defaultSourceId))
 				{
 					continue;
 				}
