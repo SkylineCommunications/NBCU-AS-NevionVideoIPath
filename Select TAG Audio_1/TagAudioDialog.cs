@@ -23,6 +23,7 @@
 		private readonly IDmsElement tagElement;
 
 		private string currentPid;
+		private string outputFiltering;
 
 		private static Dictionary<string, int?> channelMaskingMap = new Dictionary<string, int?>
 		{
@@ -35,11 +36,12 @@
 			{ "Surround Right", 6 },
 		};
 
-		public TagAudioDialog(IEngine engine, string elementName) : base(engine)
+		public TagAudioDialog(IEngine engine, string elementName, string outputFiltering) : base(engine)
 		{
 			this.engine = engine;
 			var dms = engine.GetDms();
 			tagElement = dms.GetElement(elementName);
+			this.outputFiltering = outputFiltering;
 
 			Title = "Change TAG PID";
 			OutputSelectionLabel = new Label("Output:");
@@ -106,6 +108,9 @@
 			{
 				outputsPermitted = tagElement.GetTable(TAGMCSIds.OutputConfigTable.TablePid).GetDisplayKeys().Where(x => x.Contains("Routable"));
 			}
+
+			var podFiltering = Utils.RemoveBracketPrefix(outputFiltering).Trim();
+			outputsPermitted = outputsPermitted.Where(x => x.Contains(podFiltering));
 
 			var defaultOutput = outputsPermitted.FirstOrDefault();
 			OutputSelectionDropDown.SetOptions(outputsPermitted);
