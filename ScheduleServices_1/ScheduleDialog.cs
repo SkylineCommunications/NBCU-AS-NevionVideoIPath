@@ -19,6 +19,7 @@
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.InterApp.Messages;
 	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
+	using Skyline.DataMiner.Net.Helper;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.Scheduling;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
@@ -67,6 +68,7 @@
 		private List<string> destinationNames;
 		private string[] primaryKeysCurrentServices = new string[0];
 		private bool skipVIPConnection;
+		private List<ProfileComponent> components;
 
 		public ScheduleDialog(IEngine engine) : base(engine)
 		{
@@ -206,12 +208,21 @@
 					Engine.ExitFail("Failure");
 				}
 
+				string pid = null;
+				string audioId = null;
+				var component = components.Where(x => x.Pid != null && (x.ContentType == "Audio" || x.ContentType == "AES3" || x.ContentType == "AES67")).OrderBy(c => c.Pid).FirstOrDefault();
+				if (component != null)
+				{
+					pid = Convert.ToString(component.Pid);
+					audioId = Convert.ToString(component.Index);
+				}
+
 				var outputConfig = outputConfigResponse.Output;
 				outputConfig.Input.Audio[0].Channel = channelId;
-				outputConfig.Processing.Audio[0].Mask = null;
-				outputConfig.Input.Audio[0].AudioPid = null;
-				outputConfig.Input.Audio[0].AudioIndex = null;
-				outputConfig.Processing.Muxing.Audio[0].Pid = null;
+				outputConfig.Processing.Audio[0].Mask = 0;
+				outputConfig.Input.Audio[0].AudioPid = pid;
+				outputConfig.Input.Audio[0].AudioIndex = audioId;
+				outputConfig.Processing.Muxing.Audio[0].Pid = "202";
 
 				var setMessage = new SetOutputConfigRequest
 				{
@@ -320,6 +331,9 @@
 					{
 						errorBuilder.AppendLine($"Unable to update label for channel with ID {channelId}.");
 					}
+
+					components = new List<ProfileComponent>();
+					response.Channel.Profiles.ForEach(p => components.AddRange(p.Components));
 				}
 				else
 				{
