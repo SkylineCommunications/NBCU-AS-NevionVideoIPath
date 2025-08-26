@@ -209,7 +209,7 @@ namespace DisconnectServices_1
 				var outputName = Utils.RemoveBracketPrefix(newChannelName);
 				Utils.ResetAudio(engine, tagInterAppSender, outputKeyMappings.MapToKey(outputName));
 				var scheduler = dms.GetAgent(tagElement.DmaId).Scheduler;
-				var oldTask = scheduler.GetTasks().FirstOrDefault(x => x.TaskName == channelId);
+				var oldTask = scheduler.GetTasks().FirstOrDefault(x => x.Description == channelId);
 				if (oldTask != null)
 				{
 					scheduler.DeleteTask(oldTask.Id);

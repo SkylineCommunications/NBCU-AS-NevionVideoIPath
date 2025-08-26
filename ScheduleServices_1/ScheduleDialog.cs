@@ -182,7 +182,7 @@
 				UpdateLayout(tagMcs, 1, layoutResponse, channelId, errorBuilder);
 				UpdateOutput(tagMcsElement, tagMcs, layoutName, channelId, isRTP, errorBuilder);
 
-				CreateScheduledTask(tagMcsElement, channelId);
+				CreateScheduledTask(tagMcsElement, channelId, newChannelName);
 
 				if (errorBuilder.Length != 0)
 				{
@@ -251,13 +251,13 @@
 			}
 		}
 
-		private void CreateScheduledTask(IDmsElement tag, string channelId)
+		private void CreateScheduledTask(IDmsElement tag, string channelId, string channelName)
 		{
 			var scriptName = "Cleanup TAG Audio Task";
 
 			var scheduler = dms.GetAgent(tag.AgentId).Scheduler;
 
-			var oldTask = scheduler.GetTasks().FirstOrDefault(x => x.TaskName == channelId);
+			var oldTask = scheduler.GetTasks().FirstOrDefault(x => x.Description == channelId);
 			if (oldTask != null)
 			{
 				scheduler.DeleteTask(oldTask.Id);
@@ -283,14 +283,14 @@
 				{
 					new[]
 					{
-						channelId,
+						channelName,
 						string.Empty,
 						string.Empty,
 						startTime,
 						taskType,
 						interval,
 						string.Empty,
-						"Cleanup TAG Audio",
+						channelId,
 						"TRUE",
 						string.Empty,
 						string.Empty,
@@ -302,6 +302,7 @@
 					{
 						"automation",
 						scriptName,
+						$"PARAMETER:10:{channelId}",
 						"CHECKSET:FALSE",
 						"DEFER:FALSE",
 					},
