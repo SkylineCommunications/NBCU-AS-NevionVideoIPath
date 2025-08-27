@@ -47,6 +47,74 @@
 		public class OutputConfigTable
 		{
 			public static readonly int TablePid = 3100;
+
+			public static class Pid
+			{
+				public static readonly int Index = 3101;
+				public static readonly int Label = 3102;
+				public static readonly int DeviceId = 3103;
+				public static readonly int Device = 3104;
+				public static readonly int AudioAgent = 3105;
+				public static readonly int ShowAlarms = 3106;
+				public static readonly int DisplayOnInputLoss = 3107;
+				public static readonly int AudioDisplayMode = 3108;
+				public static readonly int FrameRate = 3109;
+				public static readonly int Resolution = 3110;
+				public static readonly int Interlacing = 3111;
+				public static readonly int Deblocking = 3112;
+				public static readonly int Downscale4K = 3113;
+				public static readonly int DownrateFps = 3114;
+				public static readonly int CodecType = 3115;
+				public static readonly int GOPSize = 3116;
+				public static readonly int GOPMode = 3117;
+				public static readonly int VBVLimit = 3118;
+				public static readonly int VideoBitrate = 3119;
+				public static readonly int JSXVideoBitrate = 3120;
+				public static readonly int MINChunkLength = 3121;
+				public static readonly int NumberOfChunks = 3122;
+				public static readonly int IndexGenerationalInterval = 3123;
+				public static readonly int ProgramNumber = 3124;
+				public static readonly int TransportStreamId = 3125;
+				public static readonly int PTMPid = 3126;
+				public static readonly int VideoPIP = 3127;
+				public static readonly int LayoutCycleInterval = 3128;
+				public static readonly int JSON = 3129;
+				public static readonly int HVECLatencyMode = 3130;
+			}
+
+			public static class Idx
+			{
+				public static readonly int Index = 0;
+				public static readonly int Label = 1;
+				public static readonly int DeviceId = 2;
+				public static readonly int Device = 3;
+				public static readonly int AudioAgent = 4;
+				public static readonly int ShowAlarms = 5;
+				public static readonly int DisplayOnInputLoss = 6;
+				public static readonly int AudioDisplayMode = 7;
+				public static readonly int FrameRate = 8;
+				public static readonly int Resolution = 9;
+				public static readonly int Interlacing = 10;
+				public static readonly int Deblocking = 11;
+				public static readonly int Downscale4K = 12;
+				public static readonly int DownrateFps = 13;
+				public static readonly int CodecType = 14;
+				public static readonly int GOPSize = 15;
+				public static readonly int GOPMode = 16;
+				public static readonly int VBVLimit = 17;
+				public static readonly int VideoBitrate = 18;
+				public static readonly int JSXVideoBitrate = 19;
+				public static readonly int MINChunkLength = 20;
+				public static readonly int NumberOfChunks = 21;
+				public static readonly int IndexGenerationalInterval = 22;
+				public static readonly int ProgramNumber = 23;
+				public static readonly int TransportStreamId = 24;
+				public static readonly int PTMPid = 25;
+				public static readonly int VideoPIP = 26;
+				public static readonly int LayoutCycleInterval = 27;
+				public static readonly int JSON = 28;
+				public static readonly int HVECLatencyMode = 29;
+			}
 		}
 
 		public class LayoutTable
