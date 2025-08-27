@@ -68,17 +68,6 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 	private GQIDMS dms;
 	private DomHelper domHelper;
 
-	private static Dictionary<int, string> channelMaskingMap = new Dictionary<int, string>
-		{
-			{ -1, "None" },
-			{ 1, "Front Left" },
-			{ 2, "Front Right" },
-			{ 3, "Center" },
-			{ 4, "Low-Frequency Effects" },
-			{ 5, "Surround Left" },
-			{ 6, "Surround Right" },
-		};
-
 	public GQIArgument[] GetInputArguments()
 	{
 		return new[] { OutputFilterArgument };
@@ -191,7 +180,7 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 				new GQICell { Value = channelId },
 				new GQICell { Value = channelName },
 				new GQICell { Value = Convert.ToString(outputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.InputPID]) },
-				new GQICell { Value = channelMaskingMap.TryGetValue(Convert.ToInt32(outputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.OutputMask]), out var value) ? value : "N/A" },
+				new GQICell { Value = GQIUtils.ChannelMaskingMap.TryGetValue(Convert.ToInt32(outputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.OutputMask]), out var value) ? value : "N/A" },
 			}));
 		}
 

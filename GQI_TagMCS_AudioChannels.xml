@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <DMSScript options="272" xmlns="http://www.skyline.be/automation">
-	<Name>GQI_TagMCS_GetChannelPids</Name>
+	<Name>GQI_TagMCS_AudioChannels</Name>
 	<Description></Description>
 	<Type>Automation</Type>
 	<Author>SKYLINE2\BautistaSO</Author>
@@ -18,9 +18,9 @@
 
 	<Script>
 		<Exe id="1" type="csharp">
-			<Value><![CDATA[[Project:GQI_TagMCS_GetChannelPids_1]]]></Value>
+			<Value><![CDATA[[Project:GQI_TagMCS_AudioChannels_1]]]></Value>
 			<Param type="preCompile">true</Param>
-			<Param type="libraryName">GQI_TagMCS_GetChannelPids</Param>
+			<Param type="libraryName">GQI_TagMCS_AudioChannels</Param>
 			<Message></Message>
 		</Exe>
 	</Script>

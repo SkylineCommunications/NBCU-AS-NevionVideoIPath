@@ -15,6 +15,17 @@
 
 	public class GQIUtils
 	{
+		public static readonly Dictionary<int, string> ChannelMaskingMap = new Dictionary<int, string>
+		{
+			{ -1, "None" },
+			{ 1, "Front Left" },
+			{ 2, "Front Right" },
+			{ 3, "Center" },
+			{ 4, "Low-Frequency Effects" },
+			{ 5, "Surround Left" },
+			{ 6, "Surround Right" },
+		};
+
 		public static object[][] GetTable(GQIDMS dms, LiteElementInfoEvent response, int tableId, string[] tableFilter)
 		{
 			var partialTableRequest = new GetPartialTableMessage

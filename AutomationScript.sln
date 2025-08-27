@@ -185,6 +185,15 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Actions", "Actions", "{D86A
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GQI_TagMCS_GetChannelPids_1", "GQI_TagMCS_GetChannelPids_1\GQI_TagMCS_GetChannelPids_1.csproj", "{65FEF701-FDAD-467A-A76F-07884D28DA1A}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "GQI_TagMCS_AudioChannels", "GQI_TagMCS_AudioChannels", "{993C99F0-11CA-4B23-B26B-682D58DCF749}"
+	ProjectSection(SolutionItems) = preProject
+		GQI_TagMCS_AudioChannels.xml = GQI_TagMCS_AudioChannels.xml
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Actions", "Actions", "{34E3E356-8A0A-4D47-9A73-EAB49345772E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GQI_TagMCS_AudioChannels_1", "GQI_TagMCS_AudioChannels_1\GQI_TagMCS_AudioChannels_1.csproj", "{CF77BA68-7EEB-4F59-AFD0-6C1F2EA2BF33}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -255,6 +264,10 @@ Global
 		{65FEF701-FDAD-467A-A76F-07884D28DA1A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{65FEF701-FDAD-467A-A76F-07884D28DA1A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{65FEF701-FDAD-467A-A76F-07884D28DA1A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CF77BA68-7EEB-4F59-AFD0-6C1F2EA2BF33}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF77BA68-7EEB-4F59-AFD0-6C1F2EA2BF33}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF77BA68-7EEB-4F59-AFD0-6C1F2EA2BF33}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF77BA68-7EEB-4F59-AFD0-6C1F2EA2BF33}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -312,9 +325,12 @@ Global
 		{B1D87DB2-3D76-4159-B3C9-229A3D35B7DE} = {A5F96D06-DEB8-49A8-B58A-74B24B264661}
 		{1E32800C-0639-4E70-A817-0DE944DAAB4C} = {B1D87DB2-3D76-4159-B3C9-229A3D35B7DE}
 		{67817D64-4CC4-46DF-AF50-8A489D369C98} = {1E32800C-0639-4E70-A817-0DE944DAAB4C}
-		{2371BBB7-9B43-488E-95FD-A4E664666ABE} = {593F7762-15D5-465B-81FD-475215695E3F}
+		{2371BBB7-9B43-488E-95FD-A4E664666ABE} = {A5F96D06-DEB8-49A8-B58A-74B24B264661}
 		{D86ADB3A-E7CF-460E-9735-C18687ABFD2C} = {2371BBB7-9B43-488E-95FD-A4E664666ABE}
 		{65FEF701-FDAD-467A-A76F-07884D28DA1A} = {D86ADB3A-E7CF-460E-9735-C18687ABFD2C}
+		{993C99F0-11CA-4B23-B26B-682D58DCF749} = {593F7762-15D5-465B-81FD-475215695E3F}
+		{34E3E356-8A0A-4D47-9A73-EAB49345772E} = {993C99F0-11CA-4B23-B26B-682D58DCF749}
+		{CF77BA68-7EEB-4F59-AFD0-6C1F2EA2BF33} = {34E3E356-8A0A-4D47-9A73-EAB49345772E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {D725A676-34B2-415E-B7A0-B037D947C360}
@@ -327,6 +343,7 @@ Global
 		NevionSharedUtils\NevionSharedUtils.projitems*{67817d64-4cc4-46df-af50-8a489d369c98}*SharedItemsImports = 4
 		NevionSharedUtils\NevionSharedUtils.projitems*{833fec06-8516-4b9a-939a-5da911e77197}*SharedItemsImports = 4
 		NevionSharedUtils\NevionSharedUtils.projitems*{bbab90a1-70a8-437a-82df-52afb77fa433}*SharedItemsImports = 13
+		NevionSharedUtils\NevionSharedUtils.projitems*{cf77ba68-7eeb-4f59-afd0-6c1f2ea2bf33}*SharedItemsImports = 4
 		NevionSharedUtils\NevionSharedUtils.projitems*{f02e85c1-6334-40fc-99b0-f7c994792bb8}*SharedItemsImports = 4
 		NevionSharedUtils\NevionSharedUtils.projitems*{f43843cf-c0f5-4160-912a-baebf5cf2649}*SharedItemsImports = 4
 	EndGlobalSection
