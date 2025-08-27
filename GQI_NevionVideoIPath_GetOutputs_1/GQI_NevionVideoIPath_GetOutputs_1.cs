@@ -55,7 +55,6 @@ using System.Linq;
 using NevionSharedUtils;
 using Skyline.DataMiner.Analytics.GenericInterface;
 using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
-using Skyline.DataMiner.Net.SLSearch.Messages;
 
 [GQIMetaData(Name = "Nevion Video IPath Get Outputs")]
 public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQIInputArguments
@@ -67,6 +66,17 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 	private string[] TagId;
 	private GQIDMS dms;
 	private DomHelper domHelper;
+
+	private static Dictionary<int, string> channelMaskingMap = new Dictionary<int, string>
+		{
+			{ -1, "None" },
+			{ 1, "Front Left" },
+			{ 2, "Front Right" },
+			{ 3, "Center" },
+			{ 4, "Low-Frequency Effects" },
+			{ 5, "Surround Left" },
+			{ 6, "Surround Right" },
+		};
 
 	public GQIArgument[] GetInputArguments()
 	{
@@ -120,9 +130,12 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 
 	private List<GQIRow> BuildRows(HashSet<string> tagList, HashSet<string> destinationList)
 	{
+		var rows = new List<GQIRow>();
+
 		var nevionDestinationTable = GQIUtils.GetTable(dms, Convert.ToInt32(NevionId[0]), Convert.ToInt32(NevionId[1]), NevionIds.NevionDestinationsTable.TableId, new[] { "forceFullTable=true" });
 		var channelTable = GQIUtils.GetTable(dms, Convert.ToInt32(TagId[0]), Convert.ToInt32(TagId[1]), TAGMCSIds.ChannelConfigTable.TablePid, new[] { "forceFullTable=true" });
-		var outputAudiosTable = GQIUtils.GetTable(dms, Convert.ToInt32(TagId[0]), Convert.ToInt32(TagId[1]), TAGMCSIds.OutputConfigTable.TablePid, new[] { "forceFullTable=true" });
+		var outputAudiosTable = GQIUtils.GetTable(dms, Convert.ToInt32(TagId[0]), Convert.ToInt32(TagId[1]), TAGMCSIds.OutputAudiosTable.TablePid, new[] { "forceFullTable=true" });
+
 		foreach (var row in nevionDestinationTable)
 		{
 			var destinationTags = Convert.ToString(row[NevionIds.NevionDestinationsTable.Idx.Tags]);
@@ -138,9 +151,31 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 				continue;
 			}
 
-			//var channelRow = channelTable.FirstOrDefault(cRow => Convert.ToString(cRow[TAGMCSIds.ChannelConfigTable.]))
+			var channelRow = channelTable.FirstOrDefault(cRow => Convert.ToString(cRow[TAGMCSIds.ChannelConfigTable.Idx.Label]) == destinationLabel);
+			if (channelRow == null)
+			{
+				continue;
+			}
+
+			var channelId = Convert.ToString(channelRow[TAGMCSIds.ChannelConfigTable.Idx.Id]);
+
+			var outputAudioRow = outputAudiosTable.FirstOrDefault(audioRow => Convert.ToString(audioRow[TAGMCSIds.OutputAudiosTable.Idx.ChannelID]) == channelId);
+			if (outputAudioRow == null)
+			{
+				continue;
+			}
+
+			rows.Add(new GQIRow(new[]
+			{
+				new GQICell { Value = Convert.ToString(outputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.OutputID]) },
+				new GQICell { Value = Convert.ToString(outputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.Output]) },
+				new GQICell { Value = channelId },
+				new GQICell { Value = destinationLabel },
+				new GQICell { Value = Convert.ToString(outputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.InputPID]) },
+				new GQICell { Value = channelMaskingMap.TryGetValue(Convert.ToInt32(outputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.OutputMask]), out var value) ? value : "N/A" },
+			}));
 		}
 
-		return new List<GQIRow>();
+		return rows;
 	}
 }
