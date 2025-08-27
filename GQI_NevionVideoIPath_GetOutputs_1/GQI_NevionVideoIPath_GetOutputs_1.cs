@@ -49,11 +49,13 @@ dd/mm/2025	1.0.0.1		XXX, Skyline	Initial version
 ****************************************************************************
 */
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using NevionSharedUtils;
 using Skyline.DataMiner.Analytics.GenericInterface;
 using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+using Skyline.DataMiner.Net.SLSearch.Messages;
 
 [GQIMetaData(Name = "Nevion Video IPath Get Outputs")]
 public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQIInputArguments
@@ -92,8 +94,6 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 		{
 			new GQIStringColumn("Output ID"),
 			new GQIStringColumn("Output Name"),
-			new GQIStringColumn("Layout ID"),
-			new GQIStringColumn("Layout Name"),
 			new GQIStringColumn("Channel ID"),
 			new GQIStringColumn("Channel Name"),
 			new GQIStringColumn("PID"),
@@ -120,7 +120,27 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 
 	private List<GQIRow> BuildRows(HashSet<string> tagList, HashSet<string> destinationList)
 	{
-		// var nevionDestinationTable = GQIUtils.GetTable(dms, NevionIds.);
+		var nevionDestinationTable = GQIUtils.GetTable(dms, Convert.ToInt32(NevionId[0]), Convert.ToInt32(NevionId[1]), NevionIds.NevionDestinationsTable.TableId, new[] { "forceFullTable=true" });
+		var channelTable = GQIUtils.GetTable(dms, Convert.ToInt32(TagId[0]), Convert.ToInt32(TagId[1]), TAGMCSIds.ChannelConfigTable.TablePid, new[] { "forceFullTable=true" });
+		var outputAudiosTable = GQIUtils.GetTable(dms, Convert.ToInt32(TagId[0]), Convert.ToInt32(TagId[1]), TAGMCSIds.OutputConfigTable.TablePid, new[] { "forceFullTable=true" });
+		foreach (var row in nevionDestinationTable)
+		{
+			var destinationTags = Convert.ToString(row[NevionIds.NevionDestinationsTable.Idx.Tags]);
+			var destinationLabel = Convert.ToString(row[NevionIds.NevionDestinationsTable.Idx.DescriptorLabel]);
+
+			if (!tagList.Any(tag => destinationTags.Contains(tag) || tag.ToUpper() == "ALL"))
+			{
+				continue;
+			}
+
+			if (!destinationList.Any(label => label == destinationLabel || (label.ToUpper() == "ALL" && destinationLabel.Contains("Routable"))))
+			{
+				continue;
+			}
+
+			//var channelRow = channelTable.FirstOrDefault(cRow => Convert.ToString(cRow[TAGMCSIds.ChannelConfigTable.]))
+		}
+
 		return new List<GQIRow>();
 	}
 }
