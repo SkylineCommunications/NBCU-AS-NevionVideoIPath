@@ -55,6 +55,7 @@ using System.Linq;
 using NevionSharedUtils;
 using Skyline.DataMiner.Analytics.GenericInterface;
 using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
+using Skyline.DataMiner.Net.Helper;
 
 [GQIMetaData(Name = "Nevion Video IPath Get Outputs")]
 public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQIInputArguments
@@ -146,7 +147,7 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 				continue;
 			}
 
-			if (!destinationList.Any(label => label == destinationLabel || (label.ToUpper() == "ALL" && destinationLabel.Contains("Routable"))))
+			if (CheckOutput(destinationLabel, destinationList))
 			{
 				continue;
 			}
@@ -177,5 +178,20 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 		}
 
 		return rows;
+	}
+
+	private bool CheckOutput(string destinationLabel, HashSet<string> destinationList)
+	{
+		if (!destinationList.Any(label => label == destinationLabel || (label.ToUpper() == "ALL" && destinationLabel.Contains("Routable"))))
+		{
+			return true;
+		}
+
+		if (OutputFilter.IsNotNullOrEmpty() && !destinationLabel.Contains(OutputFilter))
+		{
+			return true;
+		}
+
+		return false;
 	}
 }
