@@ -134,7 +134,10 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 		var rows = new List<GQIRow>();
 
 		var nevionDestinationTable = GQIUtils.GetTable(dms, Convert.ToInt32(nevionId[0]), Convert.ToInt32(nevionId[1]), NevionIds.NevionDestinationsTable.TableId, new[] { "forceFullTable=true" });
-		var channelTable = GQIUtils.GetTable(dms, Convert.ToInt32(tagId[0]), Convert.ToInt32(tagId[1]), TAGMCSIds.ChannelConfigTable.TablePid, new[] { $"columns={TAGMCSIds.ChannelConfigTable.Pid.Id},{TAGMCSIds.ChannelConfigTable.Pid.Label}" });
+
+		var channelTableFilter = new[] { $"columns={TAGMCSIds.ChannelConfigTable.Pid.Id},{TAGMCSIds.ChannelConfigTable.Pid.Label}" };
+		var channelTable = GQIUtils.GetTable(dms, Convert.ToInt32(tagId[0]), Convert.ToInt32(tagId[1]), TAGMCSIds.ChannelConfigTable.TablePid, channelTableFilter);
+
 		var outputAudiosTable = GQIUtils.GetTable(dms, Convert.ToInt32(tagId[0]), Convert.ToInt32(tagId[1]), TAGMCSIds.OutputAudiosTable.TablePid, new[] { "forceFullTable=true" });
 
 		foreach (var row in nevionDestinationTable)
