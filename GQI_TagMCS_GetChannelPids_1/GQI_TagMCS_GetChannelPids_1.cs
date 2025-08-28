@@ -63,32 +63,39 @@ using Skyline.DataMiner.Net.Helper;
 public class GQI_TagMCS_GetChannelsByOutput : IGQIDataSource, IGQIOnInit, IGQIInputArguments
 {
 	private GQIStringArgument ChannelIdArgument = new GQIStringArgument("Channel ID") { IsRequired = false };
+	private GQIStringArgument CurrentPidArgument = new GQIStringArgument("Current PID") { IsRequired = false };
+	private GQIBooleanArgument ChannelSelectedArgument = new GQIBooleanArgument("Channel Selected") { IsRequired = false };
 
 	private string channelId;
+	private string currentPid;
+	private bool channelSelected;
 	private GQIDMS dms;
 	private int dataminerId;
 	private int elementId;
 
 	public GQIArgument[] GetInputArguments()
 	{
-		return new[] { ChannelIdArgument };
+		return new GQIArgument[] { ChannelIdArgument, CurrentPidArgument, ChannelSelectedArgument };
 	}
 
 	public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
 	{
 		channelId = args.GetArgumentValue(ChannelIdArgument);
+		currentPid = args.GetArgumentValue(CurrentPidArgument);
+		channelSelected = args.GetArgumentValue(ChannelSelectedArgument);
 		return default;
 	}
 
 	public GQIColumn[] GetColumns()
 	{
-		return new[]
+		return new GQIColumn[]
 		{
 			new GQIStringColumn("PID"),
 			new GQIStringColumn("Index"),
 			new GQIStringColumn("Content Type"),
 			new GQIStringColumn("Language"),
 			new GQIStringColumn("Audio Format"),
+			new GQIBooleanColumn("Selected"),
 		};
 	}
 
@@ -158,9 +165,10 @@ public class GQI_TagMCS_GetChannelsByOutput : IGQIDataSource, IGQIOnInit, IGQIIn
 			{
 				new GQICell{ Value = pid },
 				new GQICell{ Value = audioId },
-				new GQICell{ Value = contentType },
+				new GQICell{ Value = Enum.GetName(typeof(TAGMCSIds.ChannelPidsTable.ChannelPidsType), Convert.ToInt32(contentType)) },
 				new GQICell{ Value = language },
 				new GQICell{ Value = audioFormat },
+				new GQICell{ Value = pid == currentPid && channelSelected },
 			}));
 
 			pids.Add(pid);
@@ -179,7 +187,7 @@ public class GQI_TagMCS_GetChannelsByOutput : IGQIDataSource, IGQIOnInit, IGQIIn
 			var index = Convert.ToString(row[TAGMCSIds.ChannelStatusComponentsTable.Idx.Index]);
 			var contentType = Convert.ToString(row[TAGMCSIds.ChannelStatusComponentsTable.Idx.ContentType]);
 
-			if (pids.Contains(pid))
+			if (pids.Contains(pid) || index == "-1")
 			{
 				continue;
 			}
@@ -188,9 +196,10 @@ public class GQI_TagMCS_GetChannelsByOutput : IGQIDataSource, IGQIOnInit, IGQIIn
 			{
 				new GQICell { Value = pid },
 				new GQICell { Value = index },
-				new GQICell { Value = contentType },
+				new GQICell { Value = Enum.GetName(typeof(TAGMCSIds.ChannelPidsTable.ChannelPidsType), Convert.ToInt32(contentType)) },
 				new GQICell { Value = "N/A" },
 				new GQICell { Value = "N/A" },
+				new GQICell { Value = pid == currentPid && channelSelected },
 			}));
 		}
 

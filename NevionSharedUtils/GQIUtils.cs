@@ -17,7 +17,8 @@
 	{
 		public static readonly Dictionary<int, string> ChannelMaskingMap = new Dictionary<int, string>
 		{
-			{ -1, "None" },
+			{ -2, "None" },
+			{ -1, "N/A" },
 			{ 1, "Front Left" },
 			{ 2, "Front Right" },
 			{ 3, "Center" },

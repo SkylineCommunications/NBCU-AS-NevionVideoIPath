@@ -49,19 +49,39 @@ dd/mm/2025	1.0.0.1		XXX, Skyline	Initial version
 ****************************************************************************
 */
 
+using System;
 using System.Collections.Generic;
 using NevionSharedUtils;
 using Skyline.DataMiner.Analytics.GenericInterface;
 
 [GQIMetaData(Name = "GQI TAG MCS Audio Channels")]
-public class GQI_TagMCS_AudioChannels : IGQIDataSource
+public class GQI_TagMCS_AudioChannels : IGQIDataSource, IGQIInputArguments
 {
+	private GQIStringArgument CurrentSelectionArgument = new GQIStringArgument("Current Selection") { IsRequired = false };
+	private GQIBooleanArgument ChannelSelectedArgument = new GQIBooleanArgument("Channel Selected") { IsRequired = false };
+
+	private string currentSelection;
+	private bool channelSelected;
+
+	public GQIArgument[] GetInputArguments()
+	{
+		return new GQIArgument[] { CurrentSelectionArgument, ChannelSelectedArgument };
+	}
+
+	public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
+	{
+		currentSelection = args.GetArgumentValue(CurrentSelectionArgument);
+		channelSelected = args.GetArgumentValue(ChannelSelectedArgument);
+		return default;
+	}
+
 	public GQIColumn[] GetColumns()
 	{
 		return new GQIColumn[]
 		{
 			new GQIIntColumn("Int Value"),
 			new GQIStringColumn("String Value"),
+			new GQIBooleanColumn("Selected"),
 		};
 	}
 
@@ -74,6 +94,7 @@ public class GQI_TagMCS_AudioChannels : IGQIDataSource
 			{
 				new GQICell { Value = kvp.Key },
 				new GQICell { Value = kvp.Value },
+				new GQICell { Value = kvp.Value == currentSelection && channelSelected },
 			}));
 		}
 

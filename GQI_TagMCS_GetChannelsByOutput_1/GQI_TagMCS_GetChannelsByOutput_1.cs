@@ -62,29 +62,33 @@ using Skyline.DataMiner.Net.Helper;
 public class GQI_TagMCS_GetChannelsByOutput : IGQIDataSource, IGQIOnInit, IGQIInputArguments
 {
 	private GQIStringArgument OutputIdArgument = new GQIStringArgument("Output ID") { IsRequired = false };
+	private GQIStringArgument CurrentChannelIdArgument = new GQIStringArgument("Current Channel ID") { IsRequired = false };
 
 	private string outputId;
+	private string currentChannelId;
 	private GQIDMS dms;
 	private int dataminerId;
 	private int elementId;
 
 	public GQIArgument[] GetInputArguments()
 	{
-		return new[] { OutputIdArgument };
+		return new[] { OutputIdArgument, CurrentChannelIdArgument };
 	}
 
 	public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
 	{
 		outputId = args.GetArgumentValue(OutputIdArgument);
+		currentChannelId = args.GetArgumentValue(CurrentChannelIdArgument);
 		return default;
 	}
 
 	public GQIColumn[] GetColumns()
 	{
-		return new[]
+		return new GQIColumn[]
 		{
 			new GQIStringColumn("Channel ID"),
 			new GQIStringColumn("Channel Name"),
+			new GQIBooleanColumn("Selected"),
 		};
 	}
 
@@ -134,6 +138,7 @@ public class GQI_TagMCS_GetChannelsByOutput : IGQIDataSource, IGQIOnInit, IGQIIn
 			{
 				new GQICell { Value = channelId },
 				new GQICell { Value = channelName },
+				new GQICell { Value = channelId == currentChannelId },
 			}));
 		}
 
