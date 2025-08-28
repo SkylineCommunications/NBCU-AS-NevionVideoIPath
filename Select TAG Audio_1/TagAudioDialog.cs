@@ -110,7 +110,10 @@
 			}
 
 			var podFiltering = Utils.RemoveBracketPrefix(outputFiltering).Trim();
-			outputsPermitted = outputsPermitted.Where(x => x.Contains(podFiltering));
+			if (outputsPermitted.Any(x => x.Contains(podFiltering)))
+			{
+				outputsPermitted = outputsPermitted.Where(x => x.Contains(podFiltering));
+			}
 
 			var defaultOutput = outputsPermitted.FirstOrDefault();
 			OutputSelectionDropDown.SetOptions(outputsPermitted);
