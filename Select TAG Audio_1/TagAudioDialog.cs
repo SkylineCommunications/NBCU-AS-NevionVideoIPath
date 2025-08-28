@@ -110,9 +110,9 @@
 			}
 
 			var podFiltering = Utils.RemoveBracketPrefix(outputFiltering).Trim();
-			if (outputsPermitted.Any(x => x.Contains(podFiltering)))
+			if (outputsPermitted.Any(x => x.ToLower().Contains(podFiltering.ToLower())))
 			{
-				outputsPermitted = outputsPermitted.Where(x => x.Contains(podFiltering));
+				outputsPermitted = outputsPermitted.Where(x => x.ToLower().Contains(podFiltering.ToLower()));
 			}
 
 			var defaultOutput = outputsPermitted.FirstOrDefault();
