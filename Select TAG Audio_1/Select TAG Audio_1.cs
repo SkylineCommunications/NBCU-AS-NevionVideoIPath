@@ -54,7 +54,7 @@ namespace TAG_SelectTAGAudio_1
 	using System;
 
 	using Nevion.TagAudioDialog;
-
+	using NevionCommon_1;
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
@@ -78,9 +78,10 @@ namespace TAG_SelectTAGAudio_1
 
 			try
 			{
+				var outputFiltering = Utils.GetOneDeserializedValue(engine.GetScriptParam("Output Filtering").Value);
 				var controller = new InteractiveController(engine);
 
-				var dialog = new TagAudioDialog(engine, "TAG AWS MCS");
+				var dialog = new TagAudioDialog(engine, "TAG AWS MCS", outputFiltering);
 				dialog.Initialize();
 				dialog.InitializeEvents();
 
