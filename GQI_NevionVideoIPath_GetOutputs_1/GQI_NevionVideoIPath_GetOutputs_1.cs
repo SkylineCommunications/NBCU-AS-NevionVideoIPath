@@ -52,6 +52,7 @@ dd/mm/2025	1.0.0.1		XXX, Skyline	Initial version
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Remoting.Messaging;
 using NevionSharedUtils;
 using Skyline.DataMiner.Analytics.GenericInterface;
 using Skyline.DataMiner.Net.Apps.DataMinerObjectModel;
@@ -133,6 +134,12 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 		};
 		var outputAudiosTable = GQIUtils.GetTable(dms, Convert.ToInt32(tagId[0]), Convert.ToInt32(tagId[1]), TAGMCSIds.OutputAudiosTable.TablePid, outputAudioTableFilter);
 
+		var outputConfigTableFilter = new[]
+		{
+			$"columns={TAGMCSIds.OutputConfigTable.Pid.Label}",
+		};
+		var outputConfigTable = GQIUtils.GetTable(dms, Convert.ToInt32(tagId[0]), Convert.ToInt32(tagId[1]), TAGMCSIds.OutputConfigTable.TablePid, outputConfigTableFilter);
+
 		foreach (var row in nevionDestinationTable)
 		{
 			var destinationTags = Convert.ToString(row[NevionIds.NevionDestinationsTable.Idx.Tags]);
@@ -153,7 +160,7 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 				var label = Convert.ToString(cRow[TAGMCSIds.ChannelConfigTable.Idx.Label]).Split(new[] { "->" }, StringSplitOptions.None);
 				if (label.Length != 2)
 				{
-					return false;
+					return Convert.ToString(cRow[TAGMCSIds.ChannelConfigTable.Idx.Label]) == destinationLabel;
 				}
 
 				return label[1] == destinationLabel;
@@ -170,8 +177,11 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 			var outputAudioRow = outputAudiosTable.FirstOrDefault(audioRow => Convert.ToString(audioRow[TAGMCSIds.OutputAudiosTable.Idx.ChannelID]) == channelId);
 			if (outputAudioRow == null)
 			{
+				AddUnconnectedRow(channelName, outputConfigTable, ref rows);
 				continue;
 			}
+
+			rows = rows.Where(x => Convert.ToString(x.Cells[0].Value) != Convert.ToString(outputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.OutputID])).ToList();
 
 			rows.Add(new GQIRow(new[]
 			{
@@ -200,5 +210,37 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 		}
 
 		return false;
+	}
+
+	private void AddUnconnectedRow(string channelName, object[][] outputConfigTable, ref List<GQIRow> rows)
+	{
+		var channel = channelName.Split(new[] { "->" }, StringSplitOptions.None).Last();
+		var outputNameStart = channel.IndexOf("]");
+		if (outputNameStart == -1)
+		{
+			return;
+		}
+
+		var outputName = channel.Substring(outputNameStart + 1).TrimStart();
+		var outputConfigRow = outputConfigTable.FirstOrDefault(x => Convert.ToString(x[TAGMCSIds.OutputConfigTable.Idx.Label]) == outputName);
+		if (outputConfigRow == null)
+		{
+			return;
+		}
+
+		if (rows.Any(x => Convert.ToString(x.Cells[0].Value) == Convert.ToString(outputConfigRow[TAGMCSIds.OutputConfigTable.Idx.Index])))
+		{
+			return;
+		}
+
+		rows.Add(new GQIRow(new[]
+		{
+				new GQICell { Value = Convert.ToString(outputConfigRow[TAGMCSIds.OutputConfigTable.Idx.Index]) },
+				new GQICell { Value = Convert.ToString(outputConfigRow[TAGMCSIds.OutputConfigTable.Idx.Label]) },
+				new GQICell { Value = "N/A" },
+				new GQICell { Value = "N/A" },
+				new GQICell { Value = "N/A" },
+				new GQICell { Value = "N/A" },
+		}));
 	}
 }
