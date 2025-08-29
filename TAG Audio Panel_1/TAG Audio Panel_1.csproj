@@ -5,11 +5,11 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProductVersion>8.0.30703</ProductVersion>
     <SchemaVersion>2.0</SchemaVersion>
-    <ProjectGuid>{BB826465-AB28-464B-8B29-D147A2357ED4}</ProjectGuid>
+    <ProjectGuid>{1730A59A-9DB0-404A-B91A-4639382AB016}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>Cleanup_TAG_Audio_Task_1</RootNamespace>
-    <AssemblyName>Cleanup TAG Audio Task_1</AssemblyName>
+    <RootNamespace>TAG_Audio_Panel_1</RootNamespace>
+    <AssemblyName>TAG Audio Panel_1</AssemblyName>
     <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <LangVersion>
@@ -24,7 +24,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CodeAnalysisRuleSet>..\Internal\Code Analysis\qaction-debug.ruleset</CodeAnalysisRuleSet>
-    <DocumentationFile>bin\Debug\Cleanup TAG Audio Task_1.xml</DocumentationFile>
+    <DocumentationFile>bin\Debug\TAG Audio Panel_1.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -34,7 +34,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <CodeAnalysisRuleSet>..\Internal\Code Analysis\qaction-release.ruleset</CodeAnalysisRuleSet>
-    <DocumentationFile>bin\Release\Cleanup TAG Audio Task_1.xml</DocumentationFile>
+    <DocumentationFile>bin\Release\TAG Audio Panel_1.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup>
     <ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>None</ResolveAssemblyWarnOrErrorOnTargetArchitectureMismatch>
@@ -46,7 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Cleanup TAG Audio Task_1.cs" />
+    <Compile Include="TAG Audio Panel_1.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS">
@@ -54,6 +54,9 @@
     </PackageReference>
     <PackageReference Include="Skyline.DataMiner.Dev.Automation">
       <Version>10.5.0</Version>
+    </PackageReference>
+    <PackageReference Include="Skyline.DataMiner.Utils.InteractiveAutomationScriptToolkit">
+      <Version>9.0.3</Version>
     </PackageReference>
     <PackageReference Include="Skyline.DataMiner.Utils.SecureCoding.Analyzers">
       <Version>2.1.0</Version>
@@ -68,14 +71,14 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\NevionCommon_1\NevionCommon_1.csproj">
-      <Project>{6220c6bf-2c8d-4e82-9f4b-879d814e2dd9}</Project>
+      <Project>{6220C6BF-2C8D-4E82-9F4B-879D814E2DD9}</Project>
       <Name>NevionCommon_1</Name>
     </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <ProjectExtensions>
     <VisualStudio>
-      <UserProperties DisLinkedXmlFile="..\Cleanup TAG Audio Task.xml" DisProjectType="automationScriptProject" DisLinkId="1" />
+      <UserProperties DisLinkedXmlFile="..\TAG Audio Panel.xml" DisProjectType="automationScriptProject" DisLinkId="1" />
     </VisualStudio>
   </ProjectExtensions>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

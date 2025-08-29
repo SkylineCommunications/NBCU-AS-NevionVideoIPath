@@ -76,7 +76,7 @@ public class GetFilteredProfiles : IGQIDataSource, IGQIOnInit, IGQIInputArgument
 				return new List<GQIRow>();
 			}
 
-			var nevionResponse = GQIUtils.GetNevionElement(_dms, nevionElementId);
+			var nevionResponse = GQIUtils.GetElement(_dms, nevionElementId);
 
 			if (nevionResponse != null)
 			{
