@@ -126,10 +126,7 @@ namespace Cleanup_TAG_Audio_Task_1
 				channelName = channelName.Split(new[] { "->" }, StringSplitOptions.None)[1];
 			}
 
-			var outputName = Utils.RemoveBracketPrefix(channelName);
-
 			var tagMcs = new TagMCS(engine.GetUserConnection(), tagElement.DmaId, tagElement.ElementId);
-			Utils.ResetAudio(engine, tagMcs, tagElement.FindPrimaryKey(TAGMCSIds.OutputConfigTable.TablePid, outputName));
 
 			var response = tagMcs.SendMessage(new GetChannelConfigRequest(channelId, MessageIdentifier.ID), TimeSpan.FromSeconds(30));
 			var channelConfigResponse = response as GetChannelConfigResponse;
