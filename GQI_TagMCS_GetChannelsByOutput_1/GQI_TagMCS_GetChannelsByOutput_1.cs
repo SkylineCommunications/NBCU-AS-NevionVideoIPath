@@ -62,23 +62,20 @@ using Skyline.DataMiner.Net.Helper;
 public class GQI_TagMCS_GetChannelsByOutput : IGQIDataSource, IGQIOnInit, IGQIInputArguments
 {
 	private GQIStringArgument OutputIdArgument = new GQIStringArgument("Output ID") { IsRequired = false };
-	private GQIStringArgument CurrentChannelIdArgument = new GQIStringArgument("Current Channel ID") { IsRequired = false };
 
 	private string outputId;
-	private string currentChannelId;
 	private GQIDMS dms;
 	private int dataminerId;
 	private int elementId;
 
 	public GQIArgument[] GetInputArguments()
 	{
-		return new[] { OutputIdArgument, CurrentChannelIdArgument };
+		return new[] { OutputIdArgument };
 	}
 
 	public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
 	{
 		outputId = args.GetArgumentValue(OutputIdArgument);
-		currentChannelId = args.GetArgumentValue(CurrentChannelIdArgument);
 		return default;
 	}
 
@@ -124,6 +121,15 @@ public class GQI_TagMCS_GetChannelsByOutput : IGQIDataSource, IGQIOnInit, IGQIIn
 
 		var layoutId = Convert.ToString(outputLayoutRow[TAGMCSIds.OutputsLayoutsTable.Idx.LayoutID]);
 		var layoutTable = GQIUtils.GetTable(dms, dataminerId, elementId, TAGMCSIds.AllLayoutChannelsTable.TablePid, new[] { $"fullFilter={TAGMCSIds.AllLayoutChannelsTable.Pid.LayoutID}=={layoutId}" });
+
+		var outputAudioTable = GQIUtils.GetTable(dms, dataminerId, elementId, TAGMCSIds.OutputAudiosTable.TablePid, new[] { $"fullFilter={TAGMCSIds.OutputAudiosTable.Pid.Index}=={outputId}/1" });
+		var outputAudioRow = outputAudioTable.FirstOrDefault();
+		var currentChannelId = string.Empty;
+		if (outputAudioRow != null)
+		{
+			currentChannelId = Convert.ToString(outputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.ChannelID]);
+		}
+
 		foreach (var row in layoutTable)
 		{
 			var channelId = Convert.ToString(row[TAGMCSIds.AllLayoutChannelsTable.Idx.ChannelSourceId]);

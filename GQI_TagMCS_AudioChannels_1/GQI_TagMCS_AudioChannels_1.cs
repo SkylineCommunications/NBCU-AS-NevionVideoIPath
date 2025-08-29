@@ -51,26 +51,39 @@ dd/mm/2025	1.0.0.1		XXX, Skyline	Initial version
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using NevionSharedUtils;
 using Skyline.DataMiner.Analytics.GenericInterface;
 
 [GQIMetaData(Name = "GQI TAG MCS Audio Channels")]
-public class GQI_TagMCS_AudioChannels : IGQIDataSource, IGQIInputArguments
+public class GQI_TagMCS_AudioChannels : IGQIDataSource, IGQIInputArguments, IGQIOnInit
 {
-	private GQIStringArgument CurrentSelectionArgument = new GQIStringArgument("Current Selection") { IsRequired = false };
+	private GQIStringArgument OutputIdArgument = new GQIStringArgument("Output ID") { IsRequired = false };
 	private GQIBooleanArgument ChannelSelectedArgument = new GQIBooleanArgument("Channel Selected") { IsRequired = false };
 
-	private string currentSelection;
+	private string outputId;
 	private bool channelSelected;
+	private GQIDMS dms;
+	private int dataminerId;
+	private int elementId;
+
+	public OnInitOutputArgs OnInit(OnInitInputArgs args)
+	{
+		dms = args.DMS;
+		var tagIds = GQIUtils.GetElementId(dms, "TAG Video Systems Media Control System (MCS)").Split('/');
+		dataminerId = Convert.ToInt32(tagIds[0]);
+		elementId = Convert.ToInt32(tagIds[1]);
+		return default;
+	}
 
 	public GQIArgument[] GetInputArguments()
 	{
-		return new GQIArgument[] { CurrentSelectionArgument, ChannelSelectedArgument };
+		return new GQIArgument[] { OutputIdArgument, ChannelSelectedArgument };
 	}
 
 	public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
 	{
-		currentSelection = args.GetArgumentValue(CurrentSelectionArgument);
+		outputId = args.GetArgumentValue(OutputIdArgument);
 		channelSelected = args.GetArgumentValue(ChannelSelectedArgument);
 		return default;
 	}
@@ -88,13 +101,24 @@ public class GQI_TagMCS_AudioChannels : IGQIDataSource, IGQIInputArguments
 	public GQIPage GetNextPage(GetNextPageInputArgs args)
 	{
 		var rows = new List<GQIRow>();
+		var currentSelection = Int32.MinValue;
+		if (dataminerId != -1 && elementId != -1)
+		{
+			var outputAudioTable = GQIUtils.GetTable(dms, dataminerId, elementId, TAGMCSIds.OutputAudiosTable.TablePid, new[] { $"fullFilter={TAGMCSIds.OutputAudiosTable.Pid.Index}=={outputId}/1" });
+			var outputAudioRow = outputAudioTable.FirstOrDefault();
+			if (outputAudioRow != null)
+			{
+				currentSelection = Convert.ToInt32(outputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.OutputMask]);
+			}
+		}
+
 		foreach (var kvp in GQIUtils.ChannelMaskingMap)
 		{
 			rows.Add(new GQIRow(new[]
 			{
 				new GQICell { Value = kvp.Key },
 				new GQICell { Value = kvp.Value },
-				new GQICell { Value = kvp.Value == currentSelection && channelSelected },
+				new GQICell { Value = kvp.Key == currentSelection && channelSelected },
 			}));
 		}
 

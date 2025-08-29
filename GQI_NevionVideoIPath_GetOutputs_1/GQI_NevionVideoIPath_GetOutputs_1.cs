@@ -95,10 +95,6 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 		{
 			new GQIStringColumn("Output ID"),
 			new GQIStringColumn("Output Name"),
-			new GQIStringColumn("Channel ID"),
-			new GQIStringColumn("Channel Name"),
-			new GQIStringColumn("PID"),
-			new GQIStringColumn("Audio Channel"),
 		};
 	}
 
@@ -126,12 +122,6 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 		var outputsPermitted = destinationList.Select(x => GQIUtils.RemoveBracketPrefix(x).Trim()).Distinct();
 
 		var nevionDestinationTable = GQIUtils.GetTable(dms, Convert.ToInt32(nevionId[0]), Convert.ToInt32(nevionId[1]), NevionIds.NevionDestinationsTable.TableId, new[] { "forceFullTable=true" });
-
-		var outputAudioTableFilter = new[]
-		{
-			$"fullFilter=({TAGMCSIds.OutputAudiosTable.Pid.ChannelID}!=None) AND ({TAGMCSIds.OutputAudiosTable.Pid.OutputPID}==202)",
-		};
-		var outputAudiosTable = GQIUtils.GetTable(dms, Convert.ToInt32(tagId[0]), Convert.ToInt32(tagId[1]), TAGMCSIds.OutputAudiosTable.TablePid, outputAudioTableFilter);
 
 		var outputConfigTableFilter = new[]
 		{
@@ -165,16 +155,12 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 			var gqiRow = rows.FirstOrDefault(r => Convert.ToString(r.Cells[0].Value) == outputId);
 			if (gqiRow == null)
 			{
-				gqiRow = new GQIRow(new GQICell[6]);
+				rows.Add(new GQIRow(new[]
+				{
+					new GQICell { Value = outputId },
+					new GQICell { Value = outputLabel },
+				}));
 			}
-			else
-			{
-				rows.Remove(gqiRow);
-			}
-
-			gqiRow = BuildRow(outputAudiosTable, gqiRow, outputId, outputLabel);
-
-			rows.Add(gqiRow);
 		}
 
 		return rows;
@@ -193,35 +179,5 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 		}
 
 		return false;
-	}
-
-	private GQIRow BuildRow(object[][] outputAudiosTable, GQIRow gqiRow, string outputId, string outputName)
-	{
-		var outputAudioId = $"{outputId}/1";
-		var outputAudioRow = outputAudiosTable.FirstOrDefault(r => Convert.ToString(r[TAGMCSIds.OutputAudiosTable.Idx.Index]) == outputAudioId);
-		if (outputAudioRow == null)
-		{
-			gqiRow.Cells[0] = new GQICell { Value = outputId };
-			gqiRow.Cells[1] = new GQICell { Value = outputName };
-			gqiRow.Cells[2] = new GQICell { Value = "N/A" };
-			gqiRow.Cells[3] = new GQICell { Value = "N/A" };
-			gqiRow.Cells[4] = new GQICell { Value = "N/A" };
-			gqiRow.Cells[5] = new GQICell { Value = "N/A" };
-			return gqiRow;
-		}
-
-		var currentChannelId = Convert.ToString(outputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.ChannelID]);
-		var currentChannel = Convert.ToString(outputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.Channel]);
-		var currentPid = Convert.ToString(outputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.InputPID]);
-
-		gqiRow.Cells[0] = new GQICell { Value = outputId };
-		gqiRow.Cells[1] = new GQICell { Value = outputName };
-		gqiRow.Cells[2] = new GQICell { Value = currentChannelId.IsNullOrEmpty() || currentChannelId == "None" ? "N/A" : currentChannelId };
-		gqiRow.Cells[3] = new GQICell { Value = currentChannel.IsNullOrEmpty() || currentChannel == "Not Set" ? "N/A" : currentChannel };
-		gqiRow.Cells[4] = new GQICell { Value = currentPid.IsNullOrEmpty() || currentPid == "-1" ? "N/A" : currentPid };
-		var outputMask = Convert.ToInt32(outputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.OutputMask]);
-		gqiRow.Cells[5] = new GQICell { Value = GQIUtils.ChannelMaskingMap.TryGetValue(outputMask, out var value) ? value : "N/A" };
-
-		return gqiRow;
 	}
 }

@@ -62,12 +62,12 @@ using Skyline.DataMiner.Net.Helper;
 [GQIMetaData(Name = "TAG MCS Get Channel PIDs")]
 public class GQI_TagMCS_GetChannelsByOutput : IGQIDataSource, IGQIOnInit, IGQIInputArguments
 {
+	private GQIStringArgument OutputIdArgument = new GQIStringArgument("Output ID") { IsRequired = false };
 	private GQIStringArgument ChannelIdArgument = new GQIStringArgument("Channel ID") { IsRequired = false };
-	private GQIStringArgument CurrentPidArgument = new GQIStringArgument("Current PID") { IsRequired = false };
 	private GQIBooleanArgument ChannelSelectedArgument = new GQIBooleanArgument("Channel Selected") { IsRequired = false };
 
+	private string outputId;
 	private string channelId;
-	private string currentPid;
 	private bool channelSelected;
 	private GQIDMS dms;
 	private int dataminerId;
@@ -75,13 +75,13 @@ public class GQI_TagMCS_GetChannelsByOutput : IGQIDataSource, IGQIOnInit, IGQIIn
 
 	public GQIArgument[] GetInputArguments()
 	{
-		return new GQIArgument[] { ChannelIdArgument, CurrentPidArgument, ChannelSelectedArgument };
+		return new GQIArgument[] { OutputIdArgument, ChannelIdArgument, ChannelSelectedArgument };
 	}
 
 	public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
 	{
+		outputId = args.GetArgumentValue(OutputIdArgument);
 		channelId = args.GetArgumentValue(ChannelIdArgument);
-		currentPid = args.GetArgumentValue(CurrentPidArgument);
 		channelSelected = args.GetArgumentValue(ChannelSelectedArgument);
 		return default;
 	}
@@ -121,6 +121,14 @@ public class GQI_TagMCS_GetChannelsByOutput : IGQIDataSource, IGQIOnInit, IGQIIn
 	private List<GQIRow> BuildRows()
 	{
 		var rows = new List<GQIRow>();
+
+		var outputAudioTable = GQIUtils.GetTable(dms, dataminerId, elementId, TAGMCSIds.OutputAudiosTable.TablePid, new[] { $"fullFilter={TAGMCSIds.OutputAudiosTable.Pid.Index}=={outputId}/1" });
+		var outputAudioRow = outputAudioTable.FirstOrDefault();
+		var currentPid = string.Empty;
+		if (outputAudioRow != null)
+		{
+			currentPid = Convert.ToString(outputAudioRow[TAGMCSIds.OutputAudiosTable.Idx.InputPID]);
+		}
 
 		var channelPidFilter = new[]
 		{
