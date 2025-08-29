@@ -123,10 +123,9 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 	{
 		var rows = new List<GQIRow>();
 
-		var nevionDestinationTable = GQIUtils.GetTable(dms, Convert.ToInt32(nevionId[0]), Convert.ToInt32(nevionId[1]), NevionIds.NevionDestinationsTable.TableId, new[] { "forceFullTable=true" });
+		var outputsPermitted = destinationList.Select(x => GQIUtils.RemoveBracketPrefix(x).Trim()).Distinct();
 
-		var channelTableFilter = new[] { $"columns={TAGMCSIds.ChannelConfigTable.Pid.Label}" };
-		var channelTable = GQIUtils.GetTable(dms, Convert.ToInt32(tagId[0]), Convert.ToInt32(tagId[1]), TAGMCSIds.ChannelConfigTable.TablePid, channelTableFilter);
+		var nevionDestinationTable = GQIUtils.GetTable(dms, Convert.ToInt32(nevionId[0]), Convert.ToInt32(nevionId[1]), NevionIds.NevionDestinationsTable.TableId, new[] { "forceFullTable=true" });
 
 		var outputAudioTableFilter = new[]
 		{
@@ -140,35 +139,28 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 		};
 		var outputConfigTable = GQIUtils.GetTable(dms, Convert.ToInt32(tagId[0]), Convert.ToInt32(tagId[1]), TAGMCSIds.OutputConfigTable.TablePid, outputConfigTableFilter);
 
-		foreach (var row in channelTable)
+		foreach (var row in outputConfigTable)
 		{
-			var channelLabel = Convert.ToString(row[TAGMCSIds.ChannelConfigTable.Idx.Label]);
-			var channelName = channelLabel.Split(new[] { "->" }, StringSplitOptions.None).Last();
-			if (CheckOutput(channelName, destinationList))
+			var outputLabel = Convert.ToString(row[TAGMCSIds.OutputConfigTable.Idx.Label]);
+			if (CheckOutput(outputLabel, outputsPermitted))
 			{
 				continue;
 			}
 
-			var nevionRow = nevionDestinationTable.FirstOrDefault(x => Convert.ToString(x[NevionIds.NevionDestinationsTable.Idx.DescriptorLabel]) == channelName);
-			if (nevionRow == null)
+			var nevionRows = nevionDestinationTable.Where(x => Convert.ToString(x[NevionIds.NevionDestinationsTable.Idx.DescriptorLabel]) == $"[VIP RTP] {outputLabel}"
+				|| Convert.ToString(x[NevionIds.NevionDestinationsTable.Idx.DescriptorLabel]) == $"[VIP SRT] {outputLabel}");
+			if (!nevionRows.Any())
 			{
 				continue;
 			}
 
-			var destinationTags = Convert.ToString(nevionRow[NevionIds.NevionDestinationsTable.Idx.Tags]);
+			var destinationTags = String.Join(",", nevionRows.Select(x => Convert.ToString(x[NevionIds.NevionDestinationsTable.Idx.Tags])));
 			if (!tagList.Any(tag => destinationTags.Contains(tag) || tag.ToUpper() == "ALL"))
 			{
 				continue;
 			}
 
-			var outputName = GQIUtils.RemoveBracketPrefix(channelName);
-			var outputConfigRow = outputConfigTable.FirstOrDefault(x => Convert.ToString(x[TAGMCSIds.OutputConfigTable.Idx.Label]) == outputName);
-			if (outputConfigRow == null)
-			{
-				continue;
-			}
-
-			var outputId = Convert.ToString(outputConfigRow[TAGMCSIds.OutputConfigTable.Idx.Index]);
+			var outputId = Convert.ToString(row[TAGMCSIds.OutputConfigTable.Idx.Index]);
 
 			var gqiRow = rows.FirstOrDefault(r => Convert.ToString(r.Cells[0].Value) == outputId);
 			if (gqiRow == null)
@@ -180,7 +172,7 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 				rows.Remove(gqiRow);
 			}
 
-			gqiRow = BuildRow(outputAudiosTable, gqiRow, outputId, outputName);
+			gqiRow = BuildRow(outputAudiosTable, gqiRow, outputId, outputLabel);
 
 			rows.Add(gqiRow);
 		}
@@ -188,7 +180,7 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 		return rows;
 	}
 
-	private bool CheckOutput(string destinationLabel, HashSet<string> destinationList)
+	private bool CheckOutput(string destinationLabel, IEnumerable<string> destinationList)
 	{
 		if (!destinationList.Any(label => label == destinationLabel || (label.ToUpper() == "ALL" && destinationLabel.Contains("Routable"))))
 		{
