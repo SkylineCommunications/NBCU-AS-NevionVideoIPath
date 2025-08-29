@@ -221,6 +221,22 @@
 			return result.Distinct().ToList();
 		}
 
+		public static string RemoveBracketPrefix(string input)
+		{
+			if (String.IsNullOrWhiteSpace(input))
+			{
+				return input;
+			}
+
+			int closingBracketIndex = input.IndexOf(']');
+			if (input.StartsWith("[") && closingBracketIndex != -1)
+			{
+				return input.Substring(closingBracketIndex + 1).TrimStart();
+			}
+
+			return input;
+		}
+
 		public class NevionProfileDomValues
 		{
 			public string Username { get; set; }
