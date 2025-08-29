@@ -128,27 +128,29 @@ namespace TAG_Audio_Panel_1
 			{
 				var interappResponse = response as InterAppResponse;
 				ErrorMessageDialog.ShowMessage(engine, $"Error getting Output Config: {interappResponse.ResponseMessage}");
-				engine.ExitFail($"Error getting Output Config: {interappResponse.ResponseMessage}");
 				return;
 			}
 
 			var outputConfig = outputResponse.Output;
-			outputConfig.Processing.Audio[0].Mask = audioChannel;
-			outputConfig.Input.Audio[0].AudioIndex = index;
-			outputConfig.Input.Audio[0].AudioPid = pid;
+			if (audioChannel.IsNotNullOrEmpty())
+			{
+				outputConfig.Processing.Audio[0].Mask = audioChannel;
+			}
+
+			if (pid.IsNotNullOrEmpty())
+			{
+				outputConfig.Input.Audio[0].AudioIndex = index;
+				outputConfig.Input.Audio[0].AudioPid = pid;
+			}
+
 			outputConfig.Input.Audio[0].Channel = channelId;
 			outputConfig.Processing.Muxing.Audio[0].Pid = "202";
 
 			var setRequest = new SetOutputConfigRequest { Output = outputConfig };
 			var setResponse = tag.SendMessage(setRequest, TimeSpan.FromMinutes(2)) as InterAppResponse;
-			if (setResponse.Success)
-			{
-				InformationMessageDialog.ShowMessage(engine, "Audio successfully set.");
-			}
-			else
+			if (!setResponse.Success)
 			{
 				ErrorMessageDialog.ShowMessage(engine, $"Error occured during updating the output: {setResponse.ResponseMessage}");
-				engine.ExitFail($"Error occured during updating the output: {setResponse.ResponseMessage}");
 				return;
 			}
 
