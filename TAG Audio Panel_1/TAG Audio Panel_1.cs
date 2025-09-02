@@ -111,6 +111,10 @@ namespace TAG_Audio_Panel_1
 			var pid = Utils.GetOneDeserializedValue(engine.GetScriptParam("PID").Value);
 			var index = Utils.GetOneDeserializedValue(engine.GetScriptParam("Index").Value);
 			var audioChannel = Utils.GetOneDeserializedValue(engine.GetScriptParam("Audio Channel").Value);
+			if (audioChannel == "-2")
+			{
+				audioChannel = "None";
+			}
 
 			if (outputId.IsNullOrEmpty())
 			{
