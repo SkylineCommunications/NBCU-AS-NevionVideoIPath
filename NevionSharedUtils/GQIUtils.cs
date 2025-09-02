@@ -2,6 +2,7 @@
 {
 	using System;
 	using System.Collections.Generic;
+	using System.ComponentModel;
 	using System.Linq;
 
 	using DomIds;
@@ -26,6 +27,10 @@
 			{ 5, "Surround Left" },
 			{ 6, "Surround Right" },
 		};
+
+		public static readonly int NotFound = -1;
+		public static readonly string TagElement = "TAG AWS MCS";
+		public static readonly string NevionElement = "Nevion VIP - Prod";
 
 		public static object[][] GetTable(GQIDMS dms, LiteElementInfoEvent response, int tableId, string[] tableFilter)
 		{
@@ -161,27 +166,17 @@
 			}
 		}
 
-		public static string GetElementId(GQIDMS dms, string protocol)
+		public static string GetElementId(GQIDMS dms, string elementName)
 		{
-			var dataminerId = -1;
-			var elementId = -1;
+			var dataminerId = NotFound;
+			var elementId = NotFound;
 
-			var infoMessage = new GetInfoMessage { Type = InfoType.ElementInfo };
-			var infoMessageResponses = dms.SendMessages(infoMessage);
-			foreach (var response in infoMessageResponses)
+			var infoMessage = new GetElementByNameMessage { ElementName = elementName };
+			var infoMessageResponse = dms.SendMessage(infoMessage) as ElementInfoEventMessage;
+			if (infoMessageResponse != null)
 			{
-				var elementInfoEventMessage = (ElementInfoEventMessage)response;
-				if (elementInfoEventMessage == null)
-				{
-					continue;
-				}
-
-				if (elementInfoEventMessage?.Protocol == protocol && elementInfoEventMessage?.ProtocolVersion == "Production" && elementInfoEventMessage?.State == ElementState.Active)
-				{
-					dataminerId = elementInfoEventMessage.DataMinerID;
-					elementId = elementInfoEventMessage.ElementID;
-					break;
-				}
+				dataminerId = infoMessageResponse.DataMinerID;
+				elementId = infoMessageResponse.ElementID;
 			}
 
 			return $"{dataminerId}/{elementId}";
@@ -219,6 +214,29 @@
 			}
 
 			return result.Distinct().ToList();
+		}
+
+		public static string GetEnumDescription<T>(int? value) where T : struct, Enum
+		{
+			if (value == null)
+			{
+				return null;
+			}
+
+			if (Enum.IsDefined(typeof(T), value.Value))
+			{
+				var enumValue = (T)(object)value.Value;
+				return GetEnumDescription((Enum)(object)enumValue);
+			}
+
+			return null;
+		}
+
+		private static string GetEnumDescription(Enum value)
+		{
+			var field = value.GetType().GetField(value.ToString());
+			var attribute = (DescriptionAttribute)Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute));
+			return attribute == null ? value.ToString() : attribute.Description;
 		}
 
 		public static string RemoveBracketPrefix(string input)

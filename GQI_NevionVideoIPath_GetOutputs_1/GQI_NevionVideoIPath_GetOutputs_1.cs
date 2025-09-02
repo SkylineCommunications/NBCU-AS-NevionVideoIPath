@@ -84,8 +84,8 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 	{
 		dms = args.DMS;
 		domHelper = new DomHelper(dms.SendMessages, DomIds.Lca_Access.ModuleId);
-		nevionId = GQIUtils.GetElementId(dms, "Nevion Video iPath").Split('/');
-		tagId = GQIUtils.GetElementId(dms, "TAG Video Systems Media Control System (MCS)").Split('/');
+		nevionId = GQIUtils.GetElementId(dms, GQIUtils.NevionElement).Split('/');
+		tagId = GQIUtils.GetElementId(dms, GQIUtils.TagElement).Split('/');
 		return default;
 	}
 
@@ -102,7 +102,7 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 	{
 		GQIUtils.GetUserDestinationPermissions(dms, domHelper, out var matchingTagList, out var matchingDestinationList);
 
-		if (nevionId[0] == "-1" || nevionId[1] == "-1" || tagId[0] == "-1" || tagId[0] == "-1")
+		if (nevionId[0] == GQIUtils.NotFound.ToString() || nevionId[1] == GQIUtils.NotFound.ToString() || tagId[0] == GQIUtils.NotFound.ToString() || tagId[0] == GQIUtils.NotFound.ToString())
 		{
 			return new GQIPage(new GQIRow[0]);
 		}

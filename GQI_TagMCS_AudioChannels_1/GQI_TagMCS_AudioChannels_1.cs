@@ -70,7 +70,7 @@ public class GQI_TagMCS_AudioChannels : IGQIDataSource, IGQIInputArguments, IGQI
 	public OnInitOutputArgs OnInit(OnInitInputArgs args)
 	{
 		dms = args.DMS;
-		var tagIds = GQIUtils.GetElementId(dms, "TAG Video Systems Media Control System (MCS)").Split('/');
+		var tagIds = GQIUtils.GetElementId(dms, GQIUtils.TagElement).Split('/');
 		dataminerId = Convert.ToInt32(tagIds[0]);
 		elementId = Convert.ToInt32(tagIds[1]);
 		return default;
@@ -102,7 +102,7 @@ public class GQI_TagMCS_AudioChannels : IGQIDataSource, IGQIInputArguments, IGQI
 	{
 		var rows = new List<GQIRow>();
 		var currentSelection = Int32.MinValue;
-		if (dataminerId != -1 && elementId != -1)
+		if (dataminerId != GQIUtils.NotFound && elementId != GQIUtils.NotFound)
 		{
 			var outputAudioTable = GQIUtils.GetTable(dms, dataminerId, elementId, TAGMCSIds.OutputAudiosTable.TablePid, new[] { $"fullFilter={TAGMCSIds.OutputAudiosTable.Pid.Index}=={outputId}/1" });
 			var outputAudioRow = outputAudioTable.FirstOrDefault();

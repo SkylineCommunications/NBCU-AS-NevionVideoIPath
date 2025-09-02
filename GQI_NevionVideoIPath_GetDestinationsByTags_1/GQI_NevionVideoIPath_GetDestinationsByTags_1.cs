@@ -27,7 +27,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 		dms = args.DMS;
 		domHelper = new DomHelper(dms.SendMessages, DomIds.Lca_Access.ModuleId);
 		_logger = args.Logger;
-		var nevionId = GQIUtils.GetElementId(dms, "Nevion Video IPath").Split('/');
+		var nevionId = GQIUtils.GetElementId(dms, GQIUtils.NevionElement).Split('/');
 		dataminerId = Convert.ToInt32(nevionId[0]);
 		elementId = Convert.ToInt32(nevionId[1]);
 
@@ -59,7 +59,7 @@ public class GQI_NevionVideoIPath_GetDestinationsByTags : IGQIDataSource, IGQIOn
 
 	public GQIPage GetNextPage(GetNextPageInputArgs args)
 	{
-		if (dataminerId == -1 || elementId == -1)
+		if (dataminerId == GQIUtils.NotFound || elementId == GQIUtils.NotFound)
 		{
 			return new GQIPage(new GQIRow[0])
 			{

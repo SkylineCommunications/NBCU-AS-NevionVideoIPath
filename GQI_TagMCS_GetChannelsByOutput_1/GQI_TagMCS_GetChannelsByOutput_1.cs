@@ -92,7 +92,7 @@ public class GQI_TagMCS_GetChannelsByOutput : IGQIDataSource, IGQIOnInit, IGQIIn
 	public OnInitOutputArgs OnInit(OnInitInputArgs args)
 	{
 		dms = args.DMS;
-		var tagId = GQIUtils.GetElementId(dms, "TAG Video Systems Media Control System (MCS)").Split('/');
+		var tagId = GQIUtils.GetElementId(dms, GQIUtils.TagElement).Split('/');
 		dataminerId = Convert.ToInt32(tagId[0]);
 		elementId = Convert.ToInt32(tagId[1]);
 		return default;
@@ -100,7 +100,7 @@ public class GQI_TagMCS_GetChannelsByOutput : IGQIDataSource, IGQIOnInit, IGQIIn
 
 	public GQIPage GetNextPage(GetNextPageInputArgs args)
 	{
-		if (dataminerId == -1 || elementId == -1 || outputId.IsNullOrEmpty())
+		if (dataminerId == GQIUtils.NotFound || elementId == GQIUtils.NotFound || outputId.IsNullOrEmpty())
 		{
 			return new GQIPage(new GQIRow[0]);
 		}
