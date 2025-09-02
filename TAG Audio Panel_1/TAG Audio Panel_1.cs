@@ -54,8 +54,10 @@ namespace TAG_Audio_Panel_1
 	using System;
 	using System.Collections.Generic;
 	using System.Globalization;
+	using System.Linq;
 	using System.Text;
 	using NevionCommon_1;
+	using NevionSharedUtils;
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.InterApp.Messages;
@@ -111,7 +113,7 @@ namespace TAG_Audio_Panel_1
 			var pid = Utils.GetOneDeserializedValue(engine.GetScriptParam("PID").Value);
 			var index = Utils.GetOneDeserializedValue(engine.GetScriptParam("Index").Value);
 			var audioChannel = Utils.GetOneDeserializedValue(engine.GetScriptParam("Audio Channel").Value);
-			if (audioChannel == "-2")
+			if (audioChannel == GQIUtils.ChannelMaskingMap.FirstOrDefault(x => x.Value == "None").Key.ToString())
 			{
 				audioChannel = "None";
 			}
