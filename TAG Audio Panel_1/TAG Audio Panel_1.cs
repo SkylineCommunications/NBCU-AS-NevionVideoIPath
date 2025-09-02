@@ -132,12 +132,12 @@ namespace TAG_Audio_Panel_1
 			}
 
 			var outputConfig = outputResponse.Output;
-			if (audioChannel.IsNotNullOrEmpty())
+			if (audioChannel.IsNotNullOrEmpty() && audioChannel != "[]")
 			{
 				outputConfig.Processing.Audio[0].Mask = audioChannel;
 			}
 
-			if (pid.IsNotNullOrEmpty())
+			if (pid.IsNotNullOrEmpty() && pid != "[]")
 			{
 				outputConfig.Input.Audio[0].AudioIndex = index;
 				outputConfig.Input.Audio[0].AudioPid = pid;
