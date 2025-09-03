@@ -48,7 +48,7 @@
 		private readonly Time startTimePicker = new Time(TimeSpan.FromMinutes(30)) { IsVisible = false, HasSeconds = false, Minimum = TimeSpan.FromMinutes(5), Maximum = TimeSpan.FromHours(24), ClipValueToRange = true };
 
 		private readonly Label endLabel = new Label("End");
-		private readonly RadioButtonList endRadioButtonList = new RadioButtonList(new[] { "Never", "In x from Start", "Date/Time" }, "In x from Start");
+		private readonly RadioButtonList endRadioButtonList = new RadioButtonList(new[] { "Never", "In x from Start", "Date/Time" }, "Never");
 		private readonly DateTimePicker endDateTimePicker = new DateTimePicker(DateTime.Now.AddHours(1)) { IsVisible = false };
 		private readonly Time endTimePicker = new Time(TimeSpan.FromHours(4)) { IsVisible = true, HasSeconds = false, Minimum = TimeSpan.FromMinutes(5), Maximum = TimeSpan.FromHours(24) };
 
