@@ -19,6 +19,7 @@
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.InterApp.Messages;
 	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
+	using Skyline.DataMiner.Core.InterAppCalls.Common.CallSingle;
 	using Skyline.DataMiner.Net.Helper;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.Scheduling;
@@ -65,6 +66,8 @@
 
 		private readonly Element nevionVideoIPathElement;
 
+		private readonly LoggingHelper loggingHelper;
+
 		private List<string> destinationNames;
 		private string[] primaryKeysCurrentServices = new string[0];
 		private bool skipVIPConnection;
@@ -74,6 +77,7 @@
 		{
 			Title = "Connect Services";
 			dms = engine.GetDms();
+			loggingHelper = new LoggingHelper(engine, LoggingHelper.ScriptType.ScheduleService);
 
 			existingConnections = new Dictionary<string, string>();
 
@@ -102,13 +106,16 @@
 			{
 				if (!TryDeleteConnections())
 				{
-					ErrorMessageDialog.ShowMessage(engine, $"Unable to delete the pre-existing connections: {String.Join(",", existingConnections.Values)}");
+					var message = $"Unable to delete the pre-existing connections: {String.Join(",", existingConnections.Values)}";
+					ErrorMessageDialog.ShowMessage(engine, message);
+					loggingHelper.GenerateInformation(message);
 				}
 
 				if (!skipVIPConnection)
 				{
 					TriggerConnectOnElement();
 					VerifyConnectService(); // Temporary until real time updates are fully supported in the apps.
+					loggingHelper.GenerateInformation($"VIP Connection: {Name}");
 				}
 
 				// connect TAG
@@ -187,6 +194,7 @@
 				if (errorBuilder.Length != 0)
 				{
 					ErrorMessageDialog.ShowMessage(engine, errorBuilder.ToString());
+					loggingHelper.GenerateInformation($"{errorBuilder}");
 				}
 			}
 			catch (Exception e)
