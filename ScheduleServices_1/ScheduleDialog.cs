@@ -105,7 +105,7 @@
 			ConnectButton.Pressed += (s, o) =>
 			{
 				var endTime = End.HasValue ? Convert.ToString(End.Value.ToOADate(), CultureInfo.InvariantCulture) : String.Empty;
-				loggingHelper.GenerateInformation($"Nevion Connection: {Name} | Profile: {ProfileName} | Start: {Start.AddHours(4).ToString("g")} | End:{endTime}");
+				loggingHelper.GenerateInformation($"Nevion Connection: {Name}, Profile: {ProfileName}, Start: {Start.AddHours(4).ToString("g")}, End:{endTime}");
 
 				if (!TryDeleteConnections())
 				{
