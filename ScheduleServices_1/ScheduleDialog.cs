@@ -77,7 +77,7 @@
 		{
 			Title = "Connect Services";
 			dms = engine.GetDms();
-			loggingHelper = new LoggingHelper(engine, LoggingHelper.ScriptType.ScheduleService);
+			loggingHelper = new LoggingHelper(engine);
 
 			existingConnections = new Dictionary<string, string>();
 
@@ -104,18 +104,20 @@
 
 			ConnectButton.Pressed += (s, o) =>
 			{
+				var endTime = End.HasValue ? Convert.ToString(End.Value.ToOADate(), CultureInfo.InvariantCulture) : String.Empty;
+				loggingHelper.GenerateInformation($"Nevion Connection: {Name} | Profile: {ProfileName} | Start: {Start.AddHours(4).ToString("g")} | End:{endTime}");
+
 				if (!TryDeleteConnections())
 				{
 					var message = $"Unable to delete the pre-existing connections: {String.Join(",", existingConnections.Values)}";
 					ErrorMessageDialog.ShowMessage(engine, message);
-					loggingHelper.GenerateInformation(message);
+					engine.Log(message);
 				}
 
 				if (!skipVIPConnection)
 				{
 					TriggerConnectOnElement();
 					VerifyConnectService(); // Temporary until real time updates are fully supported in the apps.
-					loggingHelper.GenerateInformation($"VIP Connection: {Name}");
 				}
 
 				// connect TAG
@@ -194,7 +196,7 @@
 				if (errorBuilder.Length != 0)
 				{
 					ErrorMessageDialog.ShowMessage(engine, errorBuilder.ToString());
-					loggingHelper.GenerateInformation($"{errorBuilder}");
+					engine.Log($"{errorBuilder}");
 				}
 			}
 			catch (Exception e)
