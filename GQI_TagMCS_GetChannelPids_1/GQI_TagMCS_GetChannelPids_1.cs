@@ -147,7 +147,7 @@ public class GQI_TagMCS_GetChannelsByOutput : IGQIDataSource, IGQIOnInit, IGQIIn
 			var match = Regex.Match(audioKey, @"(?:Audio|AES3|AES67)/(\d+)", RegexOptions.IgnoreCase);
 			var audioId = match.Success ? match.Groups[1].Value : "N/A";
 
-			if (pid == GQIUtils.NotFound.ToString())
+			if (pid == GQIUtils.NotFound.ToString() || language.ToLower() == "not set")
 			{
 				continue;
 			}
