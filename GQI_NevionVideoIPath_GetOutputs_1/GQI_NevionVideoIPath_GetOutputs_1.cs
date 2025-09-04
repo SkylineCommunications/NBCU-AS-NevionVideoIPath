@@ -115,13 +115,21 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 		return new GQIPage(BuildRows(matchingTagList, matchingDestinationList).ToArray());
 	}
 
+	private static bool CheckOutput(string destinationLabel, IEnumerable<string> destinationList)
+	{
+		if (!destinationList.Any(label => label == destinationLabel || (label.ToUpper() == "ALL" && destinationLabel.Contains("Routable"))))
+		{
+			return true;
+		}
+
+		return false;
+	}
+
 	private List<GQIRow> BuildRows(HashSet<string> tagList, HashSet<string> destinationList)
 	{
 		var rows = new List<GQIRow>();
 
 		var outputsPermitted = destinationList.Select(x => GQIUtils.RemoveBracketPrefix(x).Trim()).Distinct();
-
-		var nevionDestinationTable = GQIUtils.GetTable(dms, Convert.ToInt32(nevionId[0]), Convert.ToInt32(nevionId[1]), NevionIds.NevionDestinationsTable.TableId, new[] { "forceFullTable=true" });
 
 		var outputConfigTableFilter = new[]
 		{
@@ -133,19 +141,6 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 		{
 			var outputLabel = Convert.ToString(row[TAGMCSIds.OutputConfigTable.Idx.Label]);
 			if (CheckOutput(outputLabel, outputsPermitted))
-			{
-				continue;
-			}
-
-			var nevionRows = nevionDestinationTable.Where(x => Convert.ToString(x[NevionIds.NevionDestinationsTable.Idx.DescriptorLabel]) == $"[VIP RTP] {outputLabel}"
-				|| Convert.ToString(x[NevionIds.NevionDestinationsTable.Idx.DescriptorLabel]) == $"[VIP SRT] {outputLabel}");
-			if (!nevionRows.Any())
-			{
-				continue;
-			}
-
-			var destinationTags = String.Join(",", nevionRows.Select(x => Convert.ToString(x[NevionIds.NevionDestinationsTable.Idx.Tags])));
-			if (!tagList.Any(tag => destinationTags.Contains(tag) || tag.ToUpper() == "ALL"))
 			{
 				continue;
 			}
@@ -163,21 +158,13 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 			}
 		}
 
-		return rows;
-	}
-
-	private bool CheckOutput(string destinationLabel, IEnumerable<string> destinationList)
-	{
-		if (!destinationList.Any(label => label == destinationLabel || (label.ToUpper() == "ALL" && destinationLabel.Contains("Routable"))))
+		if (outputFilter.IsNotNullOrEmpty())
 		{
-			return true;
+			return rows.OrderByDescending(r => Convert.ToString(r.Cells[1].Value).ToLower().Contains(outputFilter.ToLower())).ThenBy(r => Convert.ToString(r.Cells[1].Value)).ToList();
 		}
-
-		if (outputFilter.IsNotNullOrEmpty() && !destinationLabel.ToLower().Contains(outputFilter.ToLower()))
+		else
 		{
-			return true;
+			return rows.OrderBy(r => Convert.ToString(r.Cells[1].Value)).ToList();
 		}
-
-		return false;
 	}
 }
