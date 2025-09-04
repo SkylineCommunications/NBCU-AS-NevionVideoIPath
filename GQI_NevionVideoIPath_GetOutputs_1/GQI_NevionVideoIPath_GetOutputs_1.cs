@@ -61,8 +61,10 @@ using Skyline.DataMiner.Net.Helper;
 [GQIMetaData(Name = "Nevion Video IPath Get Outputs")]
 public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQIInputArguments
 {
+	private GQIStringArgument SelectedChannelArgument = new GQIStringArgument("Selected Channel") { IsRequired = false };
 	private GQIStringArgument OutputFilterArgument = new GQIStringArgument("Output Filter") { IsRequired = false };
 
+	private string selectedChannel;
 	private string outputFilter;
 	private string[] nevionId;
 	private string[] tagId;
@@ -71,11 +73,12 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 
 	public GQIArgument[] GetInputArguments()
 	{
-		return new[] { OutputFilterArgument };
+		return new[] { SelectedChannelArgument, OutputFilterArgument };
 	}
 
 	public OnArgumentsProcessedOutputArgs OnArgumentsProcessed(OnArgumentsProcessedInputArgs args)
 	{
+		selectedChannel = args.GetArgumentValue(SelectedChannelArgument);
 		outputFilter = args.GetArgumentValue(OutputFilterArgument);
 		return default;
 	}
@@ -100,19 +103,19 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 
 	public GQIPage GetNextPage(GetNextPageInputArgs args)
 	{
-		GQIUtils.GetUserDestinationPermissions(dms, domHelper, out var matchingTagList, out var matchingDestinationList);
+		GQIUtils.GetUserDestinationPermissions(dms, domHelper, out var _, out var matchingDestinationList);
 
 		if (nevionId[0] == GQIUtils.NotFound.ToString() || nevionId[1] == GQIUtils.NotFound.ToString() || tagId[0] == GQIUtils.NotFound.ToString() || tagId[0] == GQIUtils.NotFound.ToString())
 		{
 			return new GQIPage(new GQIRow[0]);
 		}
 
-		if (!matchingTagList.Any() || !matchingDestinationList.Any())
+		if (!matchingDestinationList.Any())
 		{
 			return new GQIPage(new GQIRow[0]);
 		}
 
-		return new GQIPage(BuildRows(matchingTagList, matchingDestinationList).ToArray());
+		return new GQIPage(BuildRows(matchingDestinationList).ToArray());
 	}
 
 	private static bool CheckOutput(string destinationLabel, IEnumerable<string> destinationList)
@@ -125,11 +128,12 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 		return false;
 	}
 
-	private List<GQIRow> BuildRows(HashSet<string> tagList, HashSet<string> destinationList)
+	private List<GQIRow> BuildRows(HashSet<string> destinationList)
 	{
 		var rows = new List<GQIRow>();
 
 		var outputsPermitted = destinationList.Select(x => GQIUtils.RemoveBracketPrefix(x).Trim()).Distinct();
+		var selectedOutput = GQIUtils.RemoveBracketPrefix(selectedChannel);
 
 		var outputConfigTableFilter = new[]
 		{
@@ -158,9 +162,34 @@ public class GQI_NevionVideoIPath_GetOutputs : IGQIDataSource, IGQIOnInit, IGQII
 			}
 		}
 
-		if (outputFilter.IsNotNullOrEmpty())
+		if (selectedOutput.IsNotNullOrEmpty() && outputFilter.IsNotNullOrEmpty())
 		{
-			return rows.OrderByDescending(r => Convert.ToString(r.Cells[1].Value).ToLower().Contains(outputFilter.ToLower())).ThenBy(r => Convert.ToString(r.Cells[1].Value)).ToList();
+			return rows.OrderBy(r =>
+			{
+				var label = Convert.ToString(r.Cells[1].Value);
+				if (label == selectedOutput)
+				{
+					return 0;
+				}
+
+				if (label.ToLower().Contains(outputFilter.ToLower()))
+				{
+					return 1;
+				}
+
+				return 2;
+			})
+				.ThenBy(r => Convert.ToString(r.Cells[1].Value)).ToList();
+		}
+		else if (selectedOutput.IsNotNullOrEmpty())
+		{
+			return rows.OrderByDescending(r => Convert.ToString(r.Cells[1].Value) == selectedOutput)
+				.ThenBy(r => Convert.ToString(r.Cells[1].Value)).ToList();
+		}
+		else if (outputFilter.IsNotNullOrEmpty())
+		{
+			return rows.OrderByDescending(r => Convert.ToString(r.Cells[1].Value).ToLower().Contains(outputFilter.ToLower()))
+				.ThenBy(r => Convert.ToString(r.Cells[1].Value)).ToList();
 		}
 		else
 		{
