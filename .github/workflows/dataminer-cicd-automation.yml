@@ -44,6 +44,7 @@ jobs:
           with:
             # The API-key generated in the DCP Admin app as authentication for a certain Organization, saved in a GitHub secret
             api-key: ${{ secrets.DATAMINER_TOKEN }}
+            github-token: ${{ secrets.GITHUB_TOKEN }}
             solution-path: ./AutomationScript.sln
             artifact-name: ${{ github.repository }} ${{ github.ref_name }}_B${{ github.run_number }}
             build-number: ${{ github.run_number }}
