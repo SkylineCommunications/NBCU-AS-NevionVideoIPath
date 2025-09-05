@@ -196,9 +196,9 @@
 				var getLayoutRequest = new GetLayoutConfigRequest(layoutId, MessageIdentifier.ID);
 				var layoutResponse = tagMcs.SendMessage(getLayoutRequest, TimeSpan.FromSeconds(30)) as GetLayoutConfigResponse;
 
-				UpdateLayout(tagMcs, 1, layoutResponse, channelId, errorBuilder);
-				ChangeChannelLabelRequest(tagMcs, errorBuilder, channelId, newChannelName);
 				UpdateOutput(tagMcsElement, tagMcs, layoutName, channelId, isRTP, errorBuilder);
+				ChangeChannelLabelRequest(tagMcs, errorBuilder, channelId, newChannelName);
+				UpdateLayout(tagMcs, 1, layoutResponse, channelId, errorBuilder);
 
 				CreateScheduledTask(tagMcsElement, channelId, newChannelName);
 
