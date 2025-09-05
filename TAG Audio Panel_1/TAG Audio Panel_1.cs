@@ -120,7 +120,7 @@ namespace TAG_Audio_Panel_1
 
 			if (outputId.IsNullOrEmpty())
 			{
-				ErrorMessageDialog.ShowMessage(engine, $"Output ID cannot be null or empty");
+				engine.Log($"Output ID cannot be null or empty");
 				engine.ExitFail($"Output ID cannot be null or empty");
 				return;
 			}
@@ -133,7 +133,7 @@ namespace TAG_Audio_Panel_1
 			if (outputResponse == null)
 			{
 				var interappResponse = response as InterAppResponse;
-				ErrorMessageDialog.ShowMessage(engine, $"Error getting Output Config: {interappResponse.ResponseMessage}");
+				engine.Log($"Error getting Output Config: {interappResponse.ResponseMessage}");
 				return;
 			}
 
@@ -160,7 +160,7 @@ namespace TAG_Audio_Panel_1
 			var setResponse = tag.SendMessage(setRequest, TimeSpan.FromMinutes(2)) as InterAppResponse;
 			if (!setResponse.Success)
 			{
-				ErrorMessageDialog.ShowMessage(engine, $"Error occured during updating the output: {setResponse.ResponseMessage}");
+				engine.Log($"Error occured during updating the output: {setResponse.ResponseMessage}");
 				return;
 			}
 
@@ -176,7 +176,7 @@ namespace TAG_Audio_Panel_1
 
 			if (errorMessage.Length > 0)
 			{
-				ErrorMessageDialog.ShowMessage(engine, $"Received success for set request but failed to validate all changes succeed:\n{errorMessage}");
+				engine.Log($"Received success for set request but failed to validate all changes succeed:\n{errorMessage}");
 			}
 
 			engine.ExitSuccess("Output successfully updated");
