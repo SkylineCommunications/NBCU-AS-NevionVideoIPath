@@ -138,15 +138,19 @@ namespace TAG_Audio_Panel_1
 			}
 
 			var outputConfig = outputResponse.Output;
+			var pidsToExpectedValue = new Dictionary<int, string>();
 			if (audioChannel.IsNotNullOrEmpty() && audioChannel != "[]")
 			{
 				outputConfig.Processing.Audio[0].Mask = audioChannel;
+				pidsToExpectedValue[TAGMCSIds.OutputAudiosTable.Pid.OutputMask] = audioChannel;
 			}
 
 			if (pid.IsNotNullOrEmpty() && pid != "[]")
 			{
 				outputConfig.Input.Audio[0].AudioIndex = index;
 				outputConfig.Input.Audio[0].AudioPid = pid;
+				pidsToExpectedValue[TAGMCSIds.OutputAudiosTable.Pid.InputIndex] = index;
+				pidsToExpectedValue[TAGMCSIds.OutputAudiosTable.Pid.InputPID] = pid;
 			}
 
 			outputConfig.Input.Audio[0].Channel = channelId;
@@ -158,6 +162,21 @@ namespace TAG_Audio_Panel_1
 			{
 				ErrorMessageDialog.ShowMessage(engine, $"Error occured during updating the output: {setResponse.ResponseMessage}");
 				return;
+			}
+
+			var errorMessage = new StringBuilder();
+			foreach (var kvp in pidsToExpectedValue)
+			{
+				var currentValue = Convert.ToString(tagElement.GetParameterByPrimaryKey(kvp.Key, $"{outputId}/1"));
+				if (kvp.Value != currentValue)
+				{
+					errorMessage.AppendLine($"\t - Expected {kvp.Value} for {kvp.Key}: received {currentValue}");
+				}
+			}
+
+			if (errorMessage.Length > 0)
+			{
+				ErrorMessageDialog.ShowMessage(engine, $"Received success for set request but failed to validate all changes succeed:\n{errorMessage}");
 			}
 
 			engine.ExitSuccess("Output successfully updated");
