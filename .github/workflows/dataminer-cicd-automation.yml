@@ -30,22 +30,6 @@ jobs:
       # The API-key: generated in the DCP Admin app (https://admin.dataminer.services/) as authentication for a certain DataMiner System.
       api-key: ${{ secrets.DATAMINER_TOKEN }}
       sonarCloudToken: ${{ secrets.SONAR_TOKEN }}
-
-  LAB_CD:
-    runs-on: windows-latest
-    needs: CI
-    if: ${{ contains(github.event.head_commit.message, '#push_lab') }}
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Install Package Creation
-      run: dotnet tool install -g Skyline.DataMiner.CICD.Tools.Packager
-    - name: Install DataMiner Deploy
-      run: dotnet tool install -g Skyline.DataMiner.CICD.Tools.DataMinerDeploy
-    - name: Create Protocol Package
-      run: dataminer-package-create dmapp "${{ github.workspace }}" --name  "Nevion_Scripts" --output "${{ github.workspace }}\\_PackageResults"
-    - name: Direct Agent Deployment
-      run: dataminer-package-deploy from-artifact --path-to-artifact "${{ github.workspace }}\\_PackageResults\\Nevion_Scripts.dmapp" --dm-server-location "${{ secrets.LAB_SERVER_LOCATION }}" --dm-user "${{ secrets.LAB_DATAMINER_USER }}" --dm-password "${{ secrets.LAB_DATAMINER_PASSWORD }}"
         
   # # Optional 0 or More CD Jobs as needed
   # CD:
