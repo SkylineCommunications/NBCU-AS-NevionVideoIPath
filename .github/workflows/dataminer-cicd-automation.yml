@@ -48,7 +48,7 @@ jobs:
             solution-path: ./AutomationScript.sln
             artifact-name: ${{ github.repository }} ${{ github.ref_name }}_B${{ github.run_number }}
             build-number: ${{ github.run_number }}
-            destination-agent-id: ${{ secrets.LAB_AGENT_ID }}
+            agent-destination-id: ${{ secrets.LAB_AGENT_ID }}
             
             
           
