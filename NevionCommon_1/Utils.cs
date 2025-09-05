@@ -2,13 +2,16 @@
 {
 	using System;
 	using System.Collections.Generic;
+	using System.ComponentModel;
 	using System.Diagnostics;
 	using System.Linq;
 
 	using System.Threading;
 
 	using DomIds;
+
 	using NevionSharedUtils;
+
 	using Skyline.DataMiner.Analytics.GenericInterface;
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS;
@@ -20,6 +23,7 @@
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.Sections;
 	using Skyline.DataMiner.Utils.SecureCoding.SecureSerialization.Json.Newtonsoft;
+
 	using static NevionSharedUtils.GQIUtils;
 
 	public class Utils
@@ -59,6 +63,22 @@
 			{
 				return scriptParam;
 			}
+		}
+
+		public static string GetEnumDescription<T>(int? value) where T : struct, Enum
+		{
+			if (value == null)
+			{
+				return null;
+			}
+
+			if (Enum.IsDefined(typeof(T), value.Value))
+			{
+				var enumValue = (T)(object)value.Value;
+				return GetEnumDescription((Enum)(object)enumValue);
+			}
+
+			return null;
 		}
 
 		public static string RemoveBracketPrefix(string input)
@@ -166,6 +186,13 @@
 			{
 				engine.Log($"Set Output Message returned failure: {setResponse.ResponseMessage}");
 			}
+		}
+
+		private static string GetEnumDescription(Enum value)
+		{
+			var field = value.GetType().GetField(value.ToString());
+			var attribute = (DescriptionAttribute)Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute));
+			return attribute == null ? value.ToString() : attribute.Description;
 		}
 	}
 }

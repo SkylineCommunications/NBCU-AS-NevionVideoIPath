@@ -58,7 +58,9 @@ namespace DisconnectServices_1
 	using NevionCommon_1;
 
 	using NevionSharedUtils;
+
 	using Newtonsoft.Json;
+
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.API_Models;
@@ -72,17 +74,18 @@ namespace DisconnectServices_1
 	/// </summary>
 	public class Script
 	{
-		private static IDms dms;
-		private static Element nevionVideoIPathElement;
-		private static Element tagElement;
+		private IDms dms;
+		private Element nevionVideoIPathElement;
+		private Element tagElement;
 
 		/// <summary>
 		/// The script entry point.
 		/// </summary>
 		/// <param name="engine">Link with SLAutomation process.</param>
-		public static void Run(IEngine engine)
+		public void Run(IEngine engine)
 		{
 			engine.SetFlag(RunTimeFlags.NoKeyCaching);
+			var loggingHelper = new LoggingHelper(engine);
 
 			try
 			{
@@ -94,6 +97,7 @@ namespace DisconnectServices_1
 				}
 
 				nevionVideoIPathElement = engine.FindElementsByProtocol("Nevion Video iPath", "Production").FirstOrDefault();
+
 				if (nevionVideoIPathElement == null)
 				{
 					engine.ExitFail("Nevion Video iPath element not found!");
@@ -122,6 +126,7 @@ namespace DisconnectServices_1
 				dms = engine.GetDms();
 
 				var disconnectedServices = DisconnectDestinations(destinationIds, out var destinationNames);
+				loggingHelper.GenerateInformation($"Delete Nevion Connections: {String.Join(";", destinationNames)}");
 				VerifyDisconnectService(disconnectedServices);
 				DisconnectTAGConnections(engine, destinationNames);
 				VerifyDisconnectChannel(destinationNames);
@@ -133,7 +138,7 @@ namespace DisconnectServices_1
 			}
 		}
 
-		private static List<string> DisconnectDestinations(List<string> destinationIds, out List<string> destinationNames)
+		private List<string> DisconnectDestinations(List<string> destinationIds, out List<string> destinationNames)
 		{
 			destinationNames = new List<string>();
 
@@ -160,11 +165,10 @@ namespace DisconnectServices_1
 			return servicesToCancel;
 		}
 
-		private static void DisconnectTAGConnections(IEngine engine, List<string> destinationNames)
+		private void DisconnectTAGConnections(IEngine engine, List<string> destinationNames)
 		{
 			var channelNames = tagElement.GetTableDisplayKeys(TAGMCSIds.ChannelConfigTable.TablePid);
 			var channelKeyMappings = tagElement.GetTableKeyMappings(TAGMCSIds.ChannelConfigTable.TablePid);
-			var outputKeyMappings = tagElement.GetTableKeyMappings(TAGMCSIds.OutputConfigTable.TablePid);
 			var channelsToDisconnect = channelNames.Where(c =>
 			{
 				var channelNameArray = c.Split(new[] { "->" }, StringSplitOptions.None);
@@ -206,8 +210,6 @@ namespace DisconnectServices_1
 					engine.Log($"Set Channel Message returned failure: {setResponse.ResponseMessage}");
 				}
 
-				var outputName = Utils.RemoveBracketPrefix(newChannelName);
-				Utils.ResetAudio(engine, tagInterAppSender, outputKeyMappings.MapToKey(outputName));
 				var scheduler = dms.GetAgent(tagElement.DmaId).Scheduler;
 				var oldTask = scheduler.GetTasks().FirstOrDefault(x => x.Description == channelId);
 				if (oldTask != null)
@@ -217,7 +219,7 @@ namespace DisconnectServices_1
 			}
 		}
 
-		private static void VerifyDisconnectChannel(List<string> destinationNames)
+		private void VerifyDisconnectChannel(List<string> destinationNames)
 		{
 			bool ChannelsDisconnected()
 			{
@@ -228,7 +230,7 @@ namespace DisconnectServices_1
 			Utils.Retry(ChannelsDisconnected, TimeSpan.FromMinutes(2));
 		}
 
-		private static bool TryGetIdsFromInput(string input, out List<string> ids)
+		private bool TryGetIdsFromInput(string input, out List<string> ids)
 		{
 			ids = new List<string>();
 
@@ -244,7 +246,7 @@ namespace DisconnectServices_1
 			}
 		}
 
-		private static void VerifyDisconnectService(List<string> disconnectedServices)
+		private void VerifyDisconnectService(List<string> disconnectedServices)
 		{
 			bool Disconnected()
 			{

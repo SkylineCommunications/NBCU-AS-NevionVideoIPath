@@ -8,6 +8,7 @@
 	using System.Text;
 	using System.Text.RegularExpressions;
 	using System.Threading;
+	using System.Threading.Tasks;
 
 	using NevionCommon_1;
 
@@ -19,6 +20,7 @@
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.InterApp.Messages;
 	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
+	using Skyline.DataMiner.Core.InterAppCalls.Common.CallSingle;
 	using Skyline.DataMiner.Net.Helper;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.Scheduling;
@@ -48,7 +50,7 @@
 		private readonly Time startTimePicker = new Time(TimeSpan.FromMinutes(30)) { IsVisible = false, HasSeconds = false, Minimum = TimeSpan.FromMinutes(5), Maximum = TimeSpan.FromHours(24), ClipValueToRange = true };
 
 		private readonly Label endLabel = new Label("End");
-		private readonly RadioButtonList endRadioButtonList = new RadioButtonList(new[] { "Never", "In x from Start", "Date/Time" }, "In x from Start");
+		private readonly RadioButtonList endRadioButtonList = new RadioButtonList(new[] { "Never", "In x from Start", "Date/Time" }, "Never");
 		private readonly DateTimePicker endDateTimePicker = new DateTimePicker(DateTime.Now.AddHours(1)) { IsVisible = false };
 		private readonly Time endTimePicker = new Time(TimeSpan.FromHours(4)) { IsVisible = true, HasSeconds = false, Minimum = TimeSpan.FromMinutes(5), Maximum = TimeSpan.FromHours(24) };
 
@@ -65,6 +67,8 @@
 
 		private readonly Element nevionVideoIPathElement;
 
+		private readonly LoggingHelper loggingHelper;
+
 		private List<string> destinationNames;
 		private string[] primaryKeysCurrentServices = new string[0];
 		private bool skipVIPConnection;
@@ -74,6 +78,7 @@
 		{
 			Title = "Connect Services";
 			dms = engine.GetDms();
+			loggingHelper = new LoggingHelper(engine);
 
 			existingConnections = new Dictionary<string, string>();
 
@@ -100,19 +105,33 @@
 
 			ConnectButton.Pressed += (s, o) =>
 			{
-				if (!TryDeleteConnections())
-				{
-					ErrorMessageDialog.ShowMessage(engine, $"Unable to delete the pre-existing connections: {String.Join(",", existingConnections.Values)}");
-				}
+				var endTime = End.HasValue
+					? Convert.ToString(End.Value.ToOADate(), CultureInfo.InvariantCulture)
+					: String.Empty;
 
-				if (!skipVIPConnection)
+				var nevionConnection = Task.Run(() =>
 				{
-					TriggerConnectOnElement();
-					VerifyConnectService(); // Temporary until real time updates are fully supported in the apps.
-				}
+					var connectionName = $"{SourceName}->{DestinationNames[0]}";
+					loggingHelper.GenerateInformation($"Nevion Connection: {connectionName}, Profile: {ProfileName}, Start: {Start}, End:{endTime}");
 
-				// connect TAG
-				ConnectTagMCS(engine);
+					if (!TryDeleteConnections())
+					{
+						var message = $"Unable to delete the pre-existing connections: {String.Join(",", existingConnections.Values)}";
+						ErrorMessageDialog.ShowMessage(engine, message);
+						engine.Log(message);
+					}
+
+					if (!skipVIPConnection)
+					{
+						TriggerConnectOnElement();
+						VerifyConnectService(); // Temporary until real time updates are fully supported in the apps.
+					}
+				});
+
+				var tagConnection = Task.Run(() => ConnectTagMCS(engine));
+
+				// Block until both are finished
+				Task.WaitAll(nevionConnection, tagConnection);
 			};
 
 			GenerateUI();
@@ -167,26 +186,26 @@
 
 				var isRTP = destinationName.StartsWith("[VIP RTP]");
 
-				var newChannelName = $"{SourceName}->{DestinationNames[0]}";
+				var newChannelName = $"{SourceName}->{destinationName}";
 
 				string channelId = Utils.GetIdFromName(tagMcsElement, TAGMCSIds.ChannelConfigTable.TablePid, destinationName);
 
 				var errorBuilder = new StringBuilder();
-				ChangeChannelLabelRequest(tagMcs, errorBuilder, channelId, newChannelName);
 
 				string layoutId = Utils.GetIdFromName(tagMcsElement, TAGMCSIds.LayoutTable.TablePid, layoutName);
-
 				var getLayoutRequest = new GetLayoutConfigRequest(layoutId, MessageIdentifier.ID);
 				var layoutResponse = tagMcs.SendMessage(getLayoutRequest, TimeSpan.FromSeconds(30)) as GetLayoutConfigResponse;
 
-				UpdateLayout(tagMcs, 1, layoutResponse, channelId, errorBuilder);
+				ChangeChannelLabelRequest(tagMcs, errorBuilder, channelId, newChannelName);
 				UpdateOutput(tagMcsElement, tagMcs, layoutName, channelId, isRTP, errorBuilder);
+				UpdateLayout(tagMcs, 1, layoutResponse, channelId, errorBuilder);
 
 				CreateScheduledTask(tagMcsElement, channelId, newChannelName);
 
 				if (errorBuilder.Length != 0)
 				{
 					ErrorMessageDialog.ShowMessage(engine, errorBuilder.ToString());
+					engine.Log($"{errorBuilder}");
 				}
 			}
 			catch (Exception e)
