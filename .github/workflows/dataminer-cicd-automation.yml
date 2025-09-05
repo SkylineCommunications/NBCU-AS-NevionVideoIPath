@@ -33,8 +33,8 @@ jobs:
 
   LAB_CD:
     name: LAB Deployment
-    environment: LAB
     runs-on: ubuntu-latest
+    if: ${{ contains(github.event.head_commit.message, '#push_lab') }}
     steps:
         - name: Skyline DataMiner Deploy Action
           # You may pin to the exact commit or the version.
@@ -42,10 +42,13 @@ jobs:
           uses: SkylineCommunications/Skyline-DataMiner-Deploy-Action@v3.0.0
           with:
             # The API-key generated in the DCP Admin app as authentication for a certain Organization, saved in a GitHub secret
-            api-key: ${{ secrets.LAB_DEPLOY_KEY }}
+            api-key: ${{ secrets.DATAMINER_TOKEN }}
             solution-path: ./AutomationScript.sln
             artifact-name: ${{ github.repository }} ${{ github.ref_name }}_B${{ github.run_number }}
             build-number: ${{ github.run_number }}
+            destination-agent-id: ${{ secrets.LAB_AGENT_ID }}
+            
+            
           
           
         
