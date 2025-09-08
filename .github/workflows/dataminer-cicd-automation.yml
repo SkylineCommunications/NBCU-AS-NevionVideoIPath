@@ -39,7 +39,7 @@ jobs:
     steps:
         - uses: actions/checkout@v3
         - name: Add NuGet source
-          run: dotnet nuget add source "https://nuget.pkg.github.com/SkylineCommunications/index.json" --name "Github" --username "$NUGET_USERNAME" --password "$NUGET_PASSWORD"
+          run: dotnet nuget add source "https://nuget.pkg.github.com/SkylineCommunications/index.json" --name "Github" --username "$NUGET_USERNAME" --password "$NUGET_PASSWORD" --store-password-in-clear-text
           env:
             NUGET_USERNAME: ${{ secrets.NUGET_USERNAME }}
             NUGET_PASSWORD: ${{ secrets.NUGET_PASSWORD }}
