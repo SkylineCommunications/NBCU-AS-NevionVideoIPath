@@ -37,6 +37,8 @@ jobs:
     runs-on: ubuntu-latest
     if: ${{ contains(github.event.head_commit.message, '#push_lab') }}
     steps:
+        - name: Refresh Repo
+          run: git pull
         - uses: actions/checkout@v3
         - name: Add NuGet source
           run: dotnet nuget add source "https://nuget.pkg.github.com/SkylineCommunications/index.json" --name "Github" --username "$NUGET_USERNAME" --password "$NUGET_PASSWORD" --store-password-in-clear-text
