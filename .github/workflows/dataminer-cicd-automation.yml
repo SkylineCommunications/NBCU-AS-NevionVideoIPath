@@ -59,6 +59,7 @@ jobs:
             artifact-name: ${{ github.repository }} ${{ github.ref_name }}_B${{ github.run_number }}
             build-number: ${{ github.run_number }}
             agent-destination-id: ${{ secrets.LAB_AGENT_ID }}
+            version: 0.0.0-CU${{ github.run_number }}
             
             
           
