@@ -38,6 +38,13 @@ jobs:
     if: ${{ contains(github.event.head_commit.message, '#push_lab') }}
     steps:
         - uses: actions/checkout@v3
+        - name: Add NuGet source
+          run: dotnet nuget add source "https://nuget.pkg.github.com/SkylineCommunications/index.json" --name "Github" --username "$NUGET_USERNAME" --password "$NUGET_PASSWORD"
+          env:
+            NUGET_USERNAME: ${{ secrets.NUGET_USERNAME }}
+            NUGET_PASSWORD: ${{ secrets.NUGET_PASSWORD }}
+        - name: Restore NuGet packages
+          run: dotnet restore
         - name: Skyline DataMiner Deploy Action
           # You may pin to the exact commit or the version.
           # uses: SkylineCommunications/Skyline-DataMiner-Deploy-Action@9b6581af0865af90b24bc5a0a0369648892ac48f
