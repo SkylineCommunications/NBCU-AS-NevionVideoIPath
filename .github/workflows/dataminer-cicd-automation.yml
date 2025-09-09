@@ -49,7 +49,7 @@ jobs:
         - name: Skyline DataMiner Deploy Action
           # You may pin to the exact commit or the version.
           # uses: SkylineCommunications/Skyline-DataMiner-Deploy-Action@9b6581af0865af90b24bc5a0a0369648892ac48f
-          uses: SkylineCommunications/Skyline-DataMiner-Deploy-Action@v3.0.0
+          uses: BautiSLC/Skyline-DataMiner-Deploy-Action@patch-1
           with:
             # The API-key generated in the DCP Admin app as authentication for a certain Organization, saved in a GitHub secret
             api-key: ${{ secrets.LAB_DEPLOY_TOKEN }}
@@ -79,7 +79,7 @@ jobs:
         - name: Skyline DataMiner Deploy Action
           # You may pin to the exact commit or the version.
           # uses: SkylineCommunications/Skyline-DataMiner-Deploy-Action@9b6581af0865af90b24bc5a0a0369648892ac48f
-          uses: SkylineCommunications/Skyline-DataMiner-Deploy-Action@v3.0.0
+          uses: BautiSLC/Skyline-DataMiner-Deploy-Action@patch-1
           with:
             # The API-key generated in the DCP Admin app as authentication for a certain Organization, saved in a GitHub secret
             api-key: ${{ secrets.STG_DEPLOY_TOKEN }}
