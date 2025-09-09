@@ -5,8 +5,7 @@ on:
   # Triggers the workflow on push or pull request events but only for the master branch
   push:
     branches:
-      - main
-      - master
+      - '**'
     tags:
       - "[0-9]+.[0-9]+.[0-9]+"
       - "[0-9]+.[0-9]+.[0-9]+.[0-9]+"
@@ -30,7 +29,71 @@ jobs:
       # The API-key: generated in the DCP Admin app (https://admin.dataminer.services/) as authentication for a certain DataMiner System.
       api-key: ${{ secrets.DATAMINER_TOKEN }}
       sonarCloudToken: ${{ secrets.SONAR_TOKEN }}
-    
+
+  LAB_CD:
+    name: LAB Deployment
+    runs-on: ubuntu-latest
+    if: ${{ always() && contains(github.event.head_commit.message, '#push_lab') }}
+    needs: CI
+    steps:
+        - uses: actions/checkout@v3
+        - name: Refresh Repo
+          run: git pull
+        - name: Add NuGet source
+          run: dotnet nuget add source "https://nuget.pkg.github.com/SkylineCommunications/index.json" --name "Github" --username "$NUGET_USERNAME" --password "$NUGET_PASSWORD" --store-password-in-clear-text
+          env:
+            NUGET_USERNAME: ${{ secrets.NUGET_USERNAME }}
+            NUGET_PASSWORD: ${{ secrets.NUGET_PASSWORD }}
+        - name: Restore NuGet packages
+          run: dotnet restore
+        - name: Skyline DataMiner Deploy Action
+          # You may pin to the exact commit or the version.
+          # uses: SkylineCommunications/Skyline-DataMiner-Deploy-Action@9b6581af0865af90b24bc5a0a0369648892ac48f
+          uses: BautiSLC/Skyline-DataMiner-Deploy-Action@patch-1
+          with:
+            # The API-key generated in the DCP Admin app as authentication for a certain Organization, saved in a GitHub secret
+            api-key: ${{ secrets.LAB_DEPLOY_TOKEN }}
+            github-token: ${{ secrets.GITHUB_TOKEN }}
+            solution-path: ./AutomationScript.sln
+            artifact-name: ${{ github.repository }} ${{ github.ref_name }}_B${{ github.run_number }}
+            build-number: ${{ github.run_number }}
+            agent-destination-id: ${{ secrets.LAB_AGENT_ID }}
+            version: 0.0.0-CU${{ github.run_number }}
+
+  Staging_CD:
+    name: Staging Deployment
+    needs: CI
+    runs-on: ubuntu-latest
+    if: ${{ contains(github.event.head_commit.message, '#push_stg') }}
+    steps:
+        - uses: actions/checkout@v3
+        - name: Refresh Repo
+          run: git pull
+        - name: Add NuGet source
+          run: dotnet nuget add source "https://nuget.pkg.github.com/SkylineCommunications/index.json" --name "Github" --username "$NUGET_USERNAME" --password "$NUGET_PASSWORD" --store-password-in-clear-text
+          env:
+            NUGET_USERNAME: ${{ secrets.NUGET_USERNAME }}
+            NUGET_PASSWORD: ${{ secrets.NUGET_PASSWORD }}
+        - name: Restore NuGet packages
+          run: dotnet restore
+        - name: Skyline DataMiner Deploy Action
+          # You may pin to the exact commit or the version.
+          # uses: SkylineCommunications/Skyline-DataMiner-Deploy-Action@9b6581af0865af90b24bc5a0a0369648892ac48f
+          uses: BautiSLC/Skyline-DataMiner-Deploy-Action@patch-1
+          with:
+            # The API-key generated in the DCP Admin app as authentication for a certain Organization, saved in a GitHub secret
+            api-key: ${{ secrets.STG_DEPLOY_TOKEN }}
+            github-token: ${{ secrets.GITHUB_TOKEN }}
+            solution-path: ./AutomationScript.sln
+            artifact-name: ${{ github.repository }} ${{ github.ref_name }}_B${{ github.run_number }}
+            build-number: ${{ github.run_number }}
+            agent-destination-id: ${{ secrets.STG_AGENT_ID }}
+            version: 0.0.0-CU${{ github.run_number }}
+            
+            
+          
+          
+        
   # # Optional 0 or More CD Jobs as needed
   # CD:
   #   if: github.ref_type == 'tag'
