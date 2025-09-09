@@ -109,6 +109,15 @@
 					? Convert.ToString(End.Value.ToOADate(), CultureInfo.InvariantCulture)
 					: String.Empty;
 
+				loggingHelper.GenerateInformation($"Nevion Connection: {Name}, Profile: {ProfileName}, Start: {Start.AddHours(4).ToString("g")}, End:{endTime}");
+
+				if (!TryDeleteConnections())
+				{
+					var message = $"Unable to delete the pre-existing connections: {String.Join(",", existingConnections.Values)}";
+					ErrorMessageDialog.ShowMessage(engine, message);
+					engine.Log(message);
+				}
+
 				var nevionConnection = Task.Run(() =>
 				{
 					var connectionName = $"{SourceName}->{DestinationNames[0]}";
