@@ -50,5 +50,34 @@
 				public static readonly int Profile = 17;
 			}
 		}
+
+		public class NevionDestinationsTable
+		{
+			public static readonly int TableId = 1400;
+
+			public class Pid
+			{
+				public static readonly int Name = 1401;
+				public static readonly int ID = 1402;
+				public static readonly int Description = 1403;
+				public static readonly int Tags = 1404;
+				public static readonly int DescriptorLabel = 1405;
+				public static readonly int fDescriptorLabel = 1406;
+				public static readonly int EndpointType = 1407;
+				public static readonly int CustomLabelName = 1408;
+			}
+
+			public class Idx
+			{
+				public static readonly int Name = 0;
+				public static readonly int ID = 1;
+				public static readonly int Description = 2;
+				public static readonly int Tags = 3;
+				public static readonly int DescriptorLabel = 4;
+				public static readonly int fDescriptorLabel = 5;
+				public static readonly int EndpointType = 6;
+				public static readonly int CustomLabelName = 7;
+			}
+		}
 	}
 }

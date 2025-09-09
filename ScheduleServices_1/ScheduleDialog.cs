@@ -8,6 +8,7 @@
 	using System.Text;
 	using System.Text.RegularExpressions;
 	using System.Threading;
+	using System.Threading.Tasks;
 
 	using NevionCommon_1;
 
@@ -104,7 +105,10 @@
 
 			ConnectButton.Pressed += (s, o) =>
 			{
-				var endTime = End.HasValue ? Convert.ToString(End.Value.ToOADate(), CultureInfo.InvariantCulture) : String.Empty;
+				var endTime = End.HasValue
+					? Convert.ToString(End.Value.ToOADate(), CultureInfo.InvariantCulture)
+					: String.Empty;
+
 				loggingHelper.GenerateInformation($"Nevion Connection: {Name}, Profile: {ProfileName}, Start: {Start.AddHours(4).ToString("g")}, End:{endTime}");
 
 				if (!TryDeleteConnections())
@@ -114,14 +118,29 @@
 					engine.Log(message);
 				}
 
-				if (!skipVIPConnection)
+				var nevionConnection = Task.Run(() =>
 				{
-					TriggerConnectOnElement();
-					VerifyConnectService(); // Temporary until real time updates are fully supported in the apps.
-				}
+					var connectionName = $"{SourceName}->{DestinationNames[0]}";
+					loggingHelper.GenerateInformation($"Nevion Connection: {connectionName}, Profile: {ProfileName}, Start: {Start}, End:{endTime}");
 
-				// connect TAG
-				ConnectTagMCS(engine);
+					if (!TryDeleteConnections())
+					{
+						var message = $"Unable to delete the pre-existing connections: {String.Join(",", existingConnections.Values)}";
+						ErrorMessageDialog.ShowMessage(engine, message);
+						engine.Log(message);
+					}
+
+					if (!skipVIPConnection)
+					{
+						TriggerConnectOnElement();
+						VerifyConnectService(); // Temporary until real time updates are fully supported in the apps.
+					}
+				});
+
+				var tagConnection = Task.Run(() => ConnectTagMCS(engine));
+
+				// Block until both are finished
+				Task.WaitAll(nevionConnection, tagConnection);
 			};
 
 			GenerateUI();
@@ -176,20 +195,19 @@
 
 				var isRTP = destinationName.StartsWith("[VIP RTP]");
 
-				var newChannelName = $"{SourceName}->{DestinationNames[0]}";
+				var newChannelName = $"{SourceName}->{destinationName}";
 
 				string channelId = Utils.GetIdFromName(tagMcsElement, TAGMCSIds.ChannelConfigTable.TablePid, destinationName);
 
 				var errorBuilder = new StringBuilder();
-				ChangeChannelLabelRequest(tagMcs, errorBuilder, channelId, newChannelName);
 
 				string layoutId = Utils.GetIdFromName(tagMcsElement, TAGMCSIds.LayoutTable.TablePid, layoutName);
-
 				var getLayoutRequest = new GetLayoutConfigRequest(layoutId, MessageIdentifier.ID);
 				var layoutResponse = tagMcs.SendMessage(getLayoutRequest, TimeSpan.FromSeconds(30)) as GetLayoutConfigResponse;
 
-				UpdateLayout(tagMcs, 1, layoutResponse, channelId, errorBuilder);
+				ChangeChannelLabelRequest(tagMcs, errorBuilder, channelId, newChannelName);
 				UpdateOutput(tagMcsElement, tagMcs, layoutName, channelId, isRTP, errorBuilder);
+				UpdateLayout(tagMcs, 1, layoutResponse, channelId, errorBuilder);
 
 				CreateScheduledTask(tagMcsElement, channelId, newChannelName);
 

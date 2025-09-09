@@ -2,6 +2,7 @@
 {
 	using System;
 	using System.Collections.Generic;
+	using System.ComponentModel;
 	using System.Linq;
 
 	using DomIds;
@@ -15,12 +16,57 @@
 
 	public class GQIUtils
 	{
+		public static readonly Dictionary<int, string> ChannelMaskingMap = new Dictionary<int, string>
+		{
+			{ -2, "None" },
+			{ -1, "N/A" },
+			{ 1, "Front Left" },
+			{ 2, "Front Right" },
+			{ 3, "Center" },
+			{ 4, "Low-Frequency Effects" },
+			{ 5, "Surround Left" },
+			{ 6, "Surround Right" },
+		};
+
+		public static readonly int NotFound = -1;
+		public static readonly string TagElement = "TAG AWS MCS";
+		public static readonly string NevionElement = "Nevion VIP - Prod";
+
 		public static object[][] GetTable(GQIDMS dms, LiteElementInfoEvent response, int tableId, string[] tableFilter)
 		{
 			var partialTableRequest = new GetPartialTableMessage
 			{
 				DataMinerID = response.DataMinerID,
 				ElementID = response.ElementID,
+				ParameterID = tableId,
+			};
+
+			if (tableFilter.IsNullOrEmpty())
+			{
+				partialTableRequest.Filters = new[] { "forceFullTable=true" };
+			}
+			else
+			{
+				partialTableRequest.Filters = tableFilter;
+			}
+
+			var messageResponse = dms.SendMessage(partialTableRequest) as ParameterChangeEventMessage;
+			if (messageResponse.NewValue.ArrayValue != null && messageResponse.NewValue.ArrayValue.Length > 0)
+			{
+				return BuildRows(messageResponse.NewValue.ArrayValue);
+			}
+			else
+			{
+				return new object[0][];
+			}
+		}
+
+		public static object[][] GetTable(GQIDMS dms, int dataminerId, int elementId, int tableId, string[] tableFilter)
+		{
+			var partialTableRequest = new GetPartialTableMessage
+			{
+				DataMinerID = dataminerId,
+				ElementID = elementId,
 				ParameterID = tableId,
 			};
 
@@ -94,9 +140,51 @@
 			return valuesList;
 		}
 
-		public static LiteElementInfoEvent GetNevionElement(GQIDMS _dms, string nevionElementId)
+		public static void GetUserDestinationPermissions(GQIDMS dms, DomHelper domHelper, out HashSet<string> matchingTagList, out HashSet<string> matchingDestinationList)
 		{
-			var sElementId = nevionElementId.Split('/');
+			var permissionList = GetDOMPermissions(domHelper, "Destination");
+			var responses = dms.SendMessages(new GetUserFullNameMessage(), new GetInfoMessage(InfoType.SecurityInfo));
+			var systemUserName = responses?.OfType<GetUserFullNameResponseMessage>().FirstOrDefault()?.User.Trim();
+			var matchingByUsername = permissionList.FirstOrDefault(instance => instance.Username == systemUserName);
+
+			matchingTagList = new HashSet<string>();
+			matchingDestinationList = new HashSet<string>();
+			if (matchingByUsername != null)
+			{
+				matchingTagList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new HashSet<string>() : matchingByUsername.Tags.Split(',').ToHashSet();
+				matchingDestinationList = String.IsNullOrEmpty(matchingByUsername.Tags) ? new HashSet<string>() : matchingByUsername.Destinations.Split(',').ToHashSet();
+			}
+
+			// Group Data
+			var securityResponse = responses?.OfType<GetUserInfoResponseMessage>().FirstOrDefault();
+
+			var groupNames = securityResponse.FindGroupNamesByUserName(systemUserName).ToList();
+			if (matchingByUsername == null && groupNames.Count > 0)
+			{
+				matchingTagList = MatchingValuesByGroup(permissionList, groupNames, x => x.Tags).ToHashSet();
+				matchingDestinationList = MatchingValuesByGroup(permissionList, groupNames, x => x.Destinations).ToHashSet();
+			}
+		}
+
+		public static string GetElementId(GQIDMS dms, string elementName)
+		{
+			var dataminerId = NotFound;
+			var elementId = NotFound;
+
+			var infoMessage = new GetElementByNameMessage { ElementName = elementName };
+			var infoMessageResponse = dms.SendMessage(infoMessage) as ElementInfoEventMessage;
+			if (infoMessageResponse != null)
+			{
+				dataminerId = infoMessageResponse.DataMinerID;
+				elementId = infoMessageResponse.ElementID;
+			}
+
+			return $"{dataminerId}/{elementId}";
+		}
+
+		public static LiteElementInfoEvent GetElement(GQIDMS _dms, string elementId)
+		{
+			var sElementId = elementId.Split('/');
 			var nevionElementRequest = new GetLiteElementInfo
 			{
 				DataMinerID = Convert.ToInt32(sElementId[0]),
@@ -126,6 +214,45 @@
 			}
 
 			return result.Distinct().ToList();
+		}
+
+		public static string GetEnumDescription<T>(int? value) where T : struct, Enum
+		{
+			if (value == null)
+			{
+				return null;
+			}
+
+			if (Enum.IsDefined(typeof(T), value.Value))
+			{
+				var enumValue = (T)(object)value.Value;
+				return GetEnumDescription((Enum)(object)enumValue);
+			}
+
+			return null;
+		}
+
+		private static string GetEnumDescription(Enum value)
+		{
+			var field = value.GetType().GetField(value.ToString());
+			var attribute = (DescriptionAttribute)Attribute.GetCustomAttribute(field, typeof(DescriptionAttribute));
+			return attribute == null ? value.ToString() : attribute.Description;
+		}
+
+		public static string RemoveBracketPrefix(string input)
+		{
+			if (String.IsNullOrWhiteSpace(input))
+			{
+				return input;
+			}
+
+			int closingBracketIndex = input.IndexOf(']');
+			if (input.StartsWith("[") && closingBracketIndex != -1)
+			{
+				return input.Substring(closingBracketIndex + 1).TrimStart();
+			}
+
+			return input;
 		}
 
 		public class NevionProfileDomValues

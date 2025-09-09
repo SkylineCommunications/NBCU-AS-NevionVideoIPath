@@ -1,0 +1,41 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<DMSScript options="272" xmlns="http://www.skyline.be/automation">
+	<Name>Nevion_TAG Audio Panel</Name>
+	<Description></Description>
+	<Type>Automation</Type>
+	<Author>SKYLINE2\BautistaSO</Author>
+	<CheckSets>FALSE</CheckSets>
+	<Folder>Nevion VideoIPath/TAG</Folder>
+
+	<Protocols>
+	</Protocols>
+
+	<Memory>
+	</Memory>
+
+	<Parameters>
+		<ScriptParameter id="10" type="string" values="">
+			<Description>Output ID</Description>
+		</ScriptParameter>
+		<ScriptParameter id="11" type="string" values="">
+			<Description>Channel ID</Description>
+		</ScriptParameter>
+		<ScriptParameter id="12" type="string" values="">
+			<Description>PID</Description>
+		</ScriptParameter>
+		<ScriptParameter id="13" type="string" values="">
+			<Description>Index</Description>
+		</ScriptParameter>
+		<ScriptParameter id="14" type="string" values="">
+			<Description>Audio Channel</Description>
+		</ScriptParameter>
+	</Parameters>
+
+	<Script>
+		<Exe id="1" type="csharp">
+			<Value><![CDATA[[Project:TAG Audio Panel_1]]]></Value>
+			<!--<Param type="debug">true</Param>-->
+			<Message></Message>
+		</Exe>
+	</Script>
+</DMSScript>
