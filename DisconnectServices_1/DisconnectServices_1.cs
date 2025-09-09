@@ -169,6 +169,7 @@ namespace DisconnectServices_1
 		{
 			var channelNames = tagElement.GetTableDisplayKeys(TAGMCSIds.ChannelConfigTable.TablePid);
 			var channelKeyMappings = tagElement.GetTableKeyMappings(TAGMCSIds.ChannelConfigTable.TablePid);
+			var outputKeyMappings = tagElement.GetTableKeyMappings(TAGMCSIds.OutputConfigTable.TablePid);
 			var channelsToDisconnect = channelNames.Where(c =>
 			{
 				var channelNameArray = c.Split(new[] { "->" }, StringSplitOptions.None);
@@ -210,6 +211,8 @@ namespace DisconnectServices_1
 					engine.Log($"Set Channel Message returned failure: {setResponse.ResponseMessage}");
 				}
 
+				var outputName = Utils.RemoveBracketPrefix(newChannelName);
+				Utils.ResetAudio(engine, tagInterAppSender, outputKeyMappings.MapToKey(outputName));
 				var scheduler = dms.GetAgent(tagElement.DmaId).Scheduler;
 				var oldTask = scheduler.GetTasks().FirstOrDefault(x => x.Description == channelId);
 				if (oldTask != null)
