@@ -109,15 +109,6 @@
 					? Convert.ToString(End.Value.ToOADate(), CultureInfo.InvariantCulture)
 					: String.Empty;
 
-				loggingHelper.GenerateInformation($"Nevion Connection: {Name}, Profile: {ProfileName}, Start: {Start.AddHours(4).ToString("g")}, End:{endTime}");
-
-				if (!TryDeleteConnections())
-				{
-					var message = $"Unable to delete the pre-existing connections: {String.Join(",", existingConnections.Values)}";
-					ErrorMessageDialog.ShowMessage(engine, message);
-					engine.Log(message);
-				}
-
 				var nevionConnection = Task.Run(() =>
 				{
 					var connectionName = $"{SourceName}->{DestinationNames[0]}";
@@ -205,9 +196,8 @@
 				var getLayoutRequest = new GetLayoutConfigRequest(layoutId, MessageIdentifier.ID);
 				var layoutResponse = tagMcs.SendMessage(getLayoutRequest, TimeSpan.FromSeconds(30)) as GetLayoutConfigResponse;
 
-				ChangeChannelLabelRequest(tagMcs, errorBuilder, channelId, newChannelName);
 				UpdateOutput(tagMcsElement, tagMcs, layoutName, channelId, isRTP, errorBuilder);
-				UpdateLayout(tagMcs, 1, layoutResponse, channelId, errorBuilder);
+				UpdateLayout(tagMcs, 1, layoutResponse, channelId, errorBuilder, newChannelName);
 
 				CreateScheduledTask(tagMcsElement, channelId, newChannelName);
 
@@ -240,7 +230,7 @@
 
 				string pid = null;
 				string audioId = null;
-				var component = components.Where(x => x.Pid != null && (x.ContentType == "Audio" || x.ContentType == "AES3" || x.ContentType == "AES67")).OrderBy(c => c.Pid).FirstOrDefault();
+				var component = components?.Where(x => x != null && x.Pid != null && (x.ContentType == "Audio" || x.ContentType == "AES3" || x.ContentType == "AES67")).OrderBy(c => c.Pid).FirstOrDefault();
 				if (component != null)
 				{
 					pid = Convert.ToString(component.Pid);
@@ -341,50 +331,7 @@
 			scheduler.CreateTask(task);
 		}
 
-		private void ChangeChannelLabelRequest(TagMCS interAppTagMcs, StringBuilder errorBuilder, string channelId, string newChannelLabel)
-		{
-			try
-			{
-				var getChannelConfig = new GetChannelConfigRequest(channelId, MessageIdentifier.ID);
-				var response = interAppTagMcs.SendMessage(getChannelConfig, TimeSpan.FromSeconds(30)) as GetChannelConfigResponse;
-
-				if (response == null)
-				{
-					errorBuilder.AppendLine($"Unable to update label for channel with ID {channelId}.");
-					return;
-				}
-
-				if (response.Success)
-				{
-					response.Channel.Label = newChannelLabel;
-					var setMessage = new SetChannelConfigRequest
-					{
-						Channel = response.Channel,
-					};
-
-					var setResponse = interAppTagMcs.SendMessage(setMessage, TimeSpan.FromSeconds(30)) as InterAppResponse;
-
-					if (!setResponse.Success)
-					{
-						errorBuilder.AppendLine($"Unable to update label for channel with ID {channelId}.");
-					}
-
-					components = new List<ProfileComponent>();
-					response.Channel.Profiles.ForEach(p => components.AddRange(p.Components));
-				}
-				else
-				{
-					errorBuilder.AppendLine($"Failed to retrieve the channel from TAG: {response.ResponseMessage}");
-				}
-			}
-			catch (Exception e)
-			{
-				errorBuilder.AppendLine($"Script exception while changing the channel label. Please contact Skyline: {e}");
-				Engine.Log($"ChangeChannelLabelRequest|Failed to update TAG Layout: {e}");
-			}
-		}
-
-		private void UpdateLayout(TagMCS interAppTagMcs, int position, GetLayoutConfigResponse layoutResponse, string channelId, StringBuilder errorBuilder)
+		private void UpdateLayout(TagMCS interAppTagMcs, int position, GetLayoutConfigResponse layoutResponse, string channelId, StringBuilder errorBuilder, string newChannelName)
 		{
 			try
 			{
@@ -396,6 +343,14 @@
 				}
 
 				layoutResponse.Layout.LayoutType = "TAG QC";
+				if (layoutResponse.Layout.Tiles[0].Umd == null)
+				{
+					layoutResponse.Layout.Tiles[0].Umd = new List<string> { newChannelName };
+				}
+				else
+				{
+					layoutResponse.Layout.Tiles[0].Umd[0] = newChannelName;
+				}
 
 				var setMessage = new SetLayoutConfigRequest
 				{
@@ -406,7 +361,18 @@
 
 				if (!setResponse.Success)
 				{
-					errorBuilder.AppendLine($"Updating the layout with channel failed : {setResponse.ResponseMessage}.");
+					errorBuilder.AppendLine($"Updating the layout failed : {setResponse.ResponseMessage}.");
+					return;
+				}
+
+				Thread.Sleep(2000);
+
+				var channelUpdateMessage = new SetChannelInLayoutRequest(layoutResponse.Layout.Uuid, channelId, 1, MessageIdentifier.ID);
+				var channelLayoutResponse = interAppTagMcs.SendMessage(channelUpdateMessage, TimeSpan.FromMinutes(2)) as InterAppResponse;
+
+				if (!channelLayoutResponse.Success)
+				{
+					errorBuilder.AppendLine($"Updating the layout with channel failed : {channelLayoutResponse.ResponseMessage}.");
 				}
 			}
 			catch (Exception e)
