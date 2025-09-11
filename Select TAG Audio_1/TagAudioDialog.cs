@@ -128,17 +128,17 @@
 			ChannelSelectionDropDown.Changed += (sender, args) =>
 			{
 				var selectedChannel = ChannelSelectionDropDown.Selected;
-				var sourceId = Utils.GetIdFromName(tagElement, TAGMCSIds.ChannelConfigTable.TablePid, selectedChannel);
+				var sourceId = TagUtils.GetIdFromName(tagElement, TAGMCSIds.ChannelConfigTable.TablePid, selectedChannel);
 				SetAudioPidsDropdown(sourceId);
 			};
 
 			ChangeAudioButton.Pressed += (sender, args) =>
 			{
 				var selectedOutput = OutputSelectionDropDown.Selected;
-				var outputId = Utils.GetIdFromName(tagElement, TAGMCSIds.OutputConfigTable.TablePid, selectedOutput);
+				var outputId = TagUtils.GetIdFromName(tagElement, TAGMCSIds.OutputConfigTable.TablePid, selectedOutput);
 
 				var selectedChannel = ChannelSelectionDropDown.Selected;
-				var sourceId = Utils.GetIdFromName(tagElement, TAGMCSIds.ChannelConfigTable.TablePid, selectedChannel);
+				var sourceId = TagUtils.GetIdFromName(tagElement, TAGMCSIds.ChannelConfigTable.TablePid, selectedChannel);
 
 				var interAppHelper = new TagMCS(engine.GetUserConnection(), tagElement.AgentId, tagElement.Id);
 				var getOutputConfig = new GetOutputConfigRequest(outputId, MessageIdentifier.ID);

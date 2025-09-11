@@ -60,6 +60,7 @@
 		private readonly Label existingVIPConnections = new Label("Existing Connections") { IsVisible = false };
 		private readonly Label existingConnectionsText = new Label("NOTE: The selected destination is in use, hitting connect will delete this existing connection:") { IsVisible = false };
 
+		private readonly IEngine engine;
 		private readonly IDms dms;
 		private readonly IDmsElement nevionElement;
 		private readonly IDmsTable connectionsTable;
@@ -76,6 +77,7 @@
 
 		public ScheduleDialog(IEngine engine) : base(engine)
 		{
+			this.engine = engine;
 			Title = "Connect Services";
 			dms = engine.GetDms();
 			loggingHelper = new LoggingHelper(engine);
@@ -192,6 +194,7 @@
 
 				var errorBuilder = new StringBuilder();
 
+				GetChannelComponents(tagMcs, errorBuilder, channelId);
 				UpdateOutput(tagMcsElement, tagMcs, layoutName, channelId, isRTP, errorBuilder);
 				UpdateLayout(tagMcsElement, tagMcs, layoutName, 1, channelId, errorBuilder, connectionName);
 
@@ -226,6 +229,7 @@
 
 				string pid = null;
 				string audioId = null;
+
 				var component = components?.Where(x => x != null && x.Pid != null && (x.ContentType == "Audio" || x.ContentType == "AES3" || x.ContentType == "AES67")).OrderBy(c => c.Pid).FirstOrDefault();
 				if (component != null)
 				{
@@ -262,6 +266,36 @@
 			{
 				errorBuilder.AppendLine($"Script exception while changing the output source. Please contact Skyline: {e}");
 				Engine.Log($"UpdateOutput|Failed to update channel output: {e}");
+			}
+		}
+
+		private void GetChannelComponents(TagMCS interAppTagMcs, StringBuilder errorBuilder, string channelId)
+		{
+			try
+			{
+				var getChannelConfig = new GetChannelConfigRequest(channelId, MessageIdentifier.ID);
+				var response = interAppTagMcs.SendMessage(getChannelConfig, TimeSpan.FromSeconds(30)) as GetChannelConfigResponse;
+
+				if (response == null)
+				{
+					errorBuilder.AppendLine($"Unable to update label for channel with ID {channelId}.");
+					return;
+				}
+
+				if (response.Success)
+				{
+					components = new List<ProfileComponent>();
+					response.Channel.Profiles.ForEach(p => components.AddRange(p.Components));
+				}
+				else
+				{
+					errorBuilder.AppendLine($"Failed to retrieve the channel components from TAG: {response.ResponseMessage}");
+				}
+			}
+			catch (Exception e)
+			{
+				errorBuilder.AppendLine($"Script exception while changing the channel label. Please contact Skyline: {e}");
+				Engine.Log($"ChangeChannelLabelRequest|Failed to update TAG Layout: {e}");
 			}
 		}
 
