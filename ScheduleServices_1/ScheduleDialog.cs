@@ -196,6 +196,7 @@
 				var getLayoutRequest = new GetLayoutConfigRequest(layoutId, MessageIdentifier.ID);
 				var layoutResponse = tagMcs.SendMessage(getLayoutRequest, TimeSpan.FromSeconds(30)) as GetLayoutConfigResponse;
 
+				GetChannelComponents(tagMcs, errorBuilder, channelId);
 				UpdateOutput(tagMcsElement, tagMcs, layoutName, channelId, isRTP, errorBuilder);
 				UpdateLayout(tagMcs, 1, layoutResponse, channelId, errorBuilder, newChannelName);
 
@@ -211,6 +212,36 @@
 			{
 				ErrorMessageDialog.ShowMessage(engine, $"Nevion connection made, but there was a script exception while updating TAG. Please contact Skyline: {e}");
 				Engine.Log($"ConnectTagMCS|Failed to update TAG: {e}");
+			}
+		}
+
+		private void GetChannelComponents(TagMCS interAppTagMcs, StringBuilder errorBuilder, string channelId)
+		{
+			try
+			{
+				var getChannelConfig = new GetChannelConfigRequest(channelId, MessageIdentifier.ID);
+				var response = interAppTagMcs.SendMessage(getChannelConfig, TimeSpan.FromSeconds(30)) as GetChannelConfigResponse;
+
+				if (response == null)
+				{
+					errorBuilder.AppendLine($"Unable to update label for channel with ID {channelId}.");
+					return;
+				}
+
+				if (response.Success)
+				{
+					components = new List<ProfileComponent>();
+					response.Channel.Profiles.ForEach(p => components.AddRange(p.Components));
+				}
+				else
+				{
+					errorBuilder.AppendLine($"Failed to retrieve the channel components from TAG: {response.ResponseMessage}");
+				}
+			}
+			catch (Exception e)
+			{
+				errorBuilder.AppendLine($"Script exception while changing the channel label. Please contact Skyline: {e}");
+				Engine.Log($"ChangeChannelLabelRequest|Failed to update TAG Layout: {e}");
 			}
 		}
 
