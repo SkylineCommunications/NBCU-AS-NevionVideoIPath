@@ -7,6 +7,7 @@
 	using System.Linq;
 
 	using System.Threading;
+	using System.Threading.Tasks;
 
 	using DomIds;
 
@@ -22,12 +23,53 @@
 	using Skyline.DataMiner.Net.Messages;
 	using Skyline.DataMiner.Net.Messages.SLDataGateway;
 	using Skyline.DataMiner.Net.Sections;
+	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 	using Skyline.DataMiner.Utils.SecureCoding.SecureSerialization.Json.Newtonsoft;
 
 	using static NevionSharedUtils.GQIUtils;
 
 	public class Utils
 	{
+		public static Label TimeOut(double timeOutMinutes)
+		{
+			return new Label
+			{
+				Text = $"This window will automatically close in {timeOutMinutes} minutes if no action is taken.",
+			};
+		}
+
+		public static void TimeOutCounter(CancellationToken token, double timeOutMinutes, Label TimeOut, Dialog dialog)
+		{
+			Task.Run(() =>
+			{
+				var stopwatch = new Stopwatch();
+				stopwatch.Start();
+
+				var timeOutTimeSpan = TimeSpan.FromMinutes(timeOutMinutes);
+				while (!token.IsCancellationRequested && stopwatch.Elapsed < timeOutTimeSpan)
+				{
+					var remainingTime = Math.Round((timeOutTimeSpan - stopwatch.Elapsed).TotalMinutes, 1);
+					if (remainingTime <= 1)
+					{
+						TimeOut.Text = $"This window will automatically close in {Math.Round((timeOutTimeSpan - stopwatch.Elapsed).TotalSeconds, 0)} seconds if no action is taken.";
+						dialog.Show(false);
+						Thread.Sleep(1000);
+					}
+					else
+					{
+						TimeOut.Text = $"This window will automatically close in {Math.Round((timeOutTimeSpan - stopwatch.Elapsed).TotalMinutes, 1)} minutes if no action is taken.";
+						dialog.Show(false);
+						Thread.Sleep(60000);
+					}
+				}
+
+				if (stopwatch.Elapsed >= timeOutTimeSpan && !token.IsCancellationRequested)
+				{
+					dialog.Hide();
+				}
+			});
+		}
+
 		public static bool Retry(Func<bool> func, TimeSpan timeout)
 		{
 			bool success;
