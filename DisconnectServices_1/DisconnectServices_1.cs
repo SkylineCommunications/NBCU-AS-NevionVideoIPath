@@ -63,11 +63,9 @@ namespace DisconnectServices_1
 
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS;
-	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.API_Models;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.InterApp.Messages;
 	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
 	using Skyline.DataMiner.Core.DataMinerSystem.Common;
-	using Skyline.DataMiner.Net.Time;
 
 	/// <summary>
 	/// Represents a DataMiner Automation script.
@@ -75,9 +73,10 @@ namespace DisconnectServices_1
 	public class Script
 	{
 		private IDms dms;
+		private IEngine engine;
 		private Element nevionVideoIPathElement;
 		private Element tagElement;
-
+		
 		/// <summary>
 		/// The script entry point.
 		/// </summary>
@@ -85,6 +84,7 @@ namespace DisconnectServices_1
 		public void Run(IEngine engine)
 		{
 			engine.SetFlag(RunTimeFlags.NoKeyCaching);
+			this.engine = engine;
 			var loggingHelper = new LoggingHelper(engine);
 
 			try
@@ -128,7 +128,7 @@ namespace DisconnectServices_1
 				var disconnectedServices = DisconnectDestinations(destinationIds, out var destinationNames);
 				loggingHelper.GenerateInformation($"Delete Nevion Connections: {String.Join(";", destinationNames)}");
 				VerifyDisconnectService(disconnectedServices);
-				DisconnectTAGConnections(engine, destinationNames);
+				DisconnectTAGConnections(destinationNames);
 				VerifyDisconnectChannel(destinationNames);
 			}
 			catch (Exception e)
@@ -165,54 +165,22 @@ namespace DisconnectServices_1
 			return servicesToCancel;
 		}
 
-		private void DisconnectTAGConnections(IEngine engine, List<string> destinationNames)
+		private void DisconnectTAGConnections(List<string> destinationNames)
 		{
-			var channelNames = tagElement.GetTableDisplayKeys(TAGMCSIds.ChannelConfigTable.TablePid);
+			var idmsTag = dms.GetElement(tagElement.ElementName);
 			var channelKeyMappings = tagElement.GetTableKeyMappings(TAGMCSIds.ChannelConfigTable.TablePid);
 			var outputKeyMappings = tagElement.GetTableKeyMappings(TAGMCSIds.OutputConfigTable.TablePid);
-			var channelsToDisconnect = channelNames.Where(c =>
-			{
-				var channelNameArray = c.Split(new[] { "->" }, StringSplitOptions.None);
-				if (channelNameArray.Length != 2)
-				{
-					return false;
-				}
-
-				var destination = channelNameArray[1];
-				return destinationNames.Contains(destination);
-			});
 
 			var tagInterAppSender = new TagMCS(engine.GetUserConnection(), tagElement.DmaId, tagElement.ElementId);
-			foreach (var channelName in channelsToDisconnect)
+			foreach (var channelName in destinationNames)
 			{
 				var channelId = channelKeyMappings.MapToKey(channelName);
-				var response = tagInterAppSender.SendMessage(new GetChannelConfigRequest(channelId, MessageIdentifier.ID), TimeSpan.FromMinutes(2));
-				var channelResponse = response as GetChannelConfigResponse;
-				if (channelResponse == null)
-				{
-					var interappResponse = response as InterAppResponse;
-					engine.Log($"Get Channel Message returned failure: {interappResponse.ResponseMessage}");
-					continue;
-				}
 
-				var newChannelName = channelName.Split(new[] { "->" }, StringSplitOptions.None)[1];
-				var channel = channelResponse.Channel;
-				channel.Label = newChannelName;
+				var outputName = Utils.RemoveBracketPrefix(channelName);
+				TagUtils.ResetAudio(engine, tagInterAppSender, outputKeyMappings.MapToKey(outputName));
 
-				var setResponse = tagInterAppSender.SendMessage(new SetChannelConfigRequest { Channel = channel }, TimeSpan.FromMinutes(2)) as InterAppResponse;
-				if (setResponse == null)
-				{
-					engine.Log("No response on Set Channel received");
-					continue;
-				}
+				TagUtils.ClearLayoutUmd(engine, idmsTag, tagInterAppSender, outputName);
 
-				if (!setResponse.Success)
-				{
-					engine.Log($"Set Channel Message returned failure: {setResponse.ResponseMessage}");
-				}
-
-				var outputName = Utils.RemoveBracketPrefix(newChannelName);
-				Utils.ResetAudio(engine, tagInterAppSender, outputKeyMappings.MapToKey(outputName));
 				var scheduler = dms.GetAgent(tagElement.DmaId).Scheduler;
 				var oldTask = scheduler.GetTasks().FirstOrDefault(x => x.Description == channelId);
 				if (oldTask != null)

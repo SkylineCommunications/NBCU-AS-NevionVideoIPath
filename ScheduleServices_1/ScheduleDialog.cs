@@ -52,7 +52,7 @@
 		private readonly Label endLabel = new Label("End");
 		private readonly RadioButtonList endRadioButtonList = new RadioButtonList(new[] { "Never", "In x from Start", "Date/Time" }, "Never");
 		private readonly DateTimePicker endDateTimePicker = new DateTimePicker(DateTime.Now.AddHours(1)) { IsVisible = false };
-		private readonly Time endTimePicker = new Time(TimeSpan.FromHours(4)) { IsVisible = true, HasSeconds = false, Minimum = TimeSpan.FromMinutes(5), Maximum = TimeSpan.FromHours(24) };
+		private readonly Time endTimePicker = new Time(TimeSpan.FromHours(4)) { IsVisible = false, HasSeconds = false, Minimum = TimeSpan.FromMinutes(5), Maximum = TimeSpan.FromHours(24) };
 
 		private readonly Label routeLabel = new Label("Route");
 		private readonly RadioButtonList routeRadioButtonList = new RadioButtonList(new[] { "Point-to-Point", "Point-to-Multipoint" }, "Point-to-Multipoint");
@@ -186,20 +186,16 @@
 
 				var isRTP = destinationName.StartsWith("[VIP RTP]");
 
-				var newChannelName = $"{SourceName}->{destinationName}";
+				var connectionName = $"{SourceName}->{destinationName}";
 
-				string channelId = Utils.GetIdFromName(tagMcsElement, TAGMCSIds.ChannelConfigTable.TablePid, destinationName);
+				string channelId = TagUtils.GetIdFromName(tagMcsElement, TAGMCSIds.ChannelConfigTable.TablePid, destinationName);
 
 				var errorBuilder = new StringBuilder();
 
-				string layoutId = Utils.GetIdFromName(tagMcsElement, TAGMCSIds.LayoutTable.TablePid, layoutName);
-				var getLayoutRequest = new GetLayoutConfigRequest(layoutId, MessageIdentifier.ID);
-				var layoutResponse = tagMcs.SendMessage(getLayoutRequest, TimeSpan.FromSeconds(30)) as GetLayoutConfigResponse;
-
 				UpdateOutput(tagMcsElement, tagMcs, layoutName, channelId, isRTP, errorBuilder);
-				UpdateLayout(tagMcs, 1, layoutResponse, channelId, errorBuilder, newChannelName);
+				UpdateLayout(tagMcsElement, tagMcs, layoutName, 1, channelId, errorBuilder, connectionName);
 
-				CreateScheduledTask(tagMcsElement, channelId, newChannelName);
+				CreateScheduledTask(tagMcsElement, channelId, connectionName);
 
 				if (errorBuilder.Length != 0)
 				{
@@ -218,7 +214,7 @@
 		{
 			try
 			{
-				var outputId = Utils.GetIdFromName(tagMcsElement, TAGMCSIds.OutputConfigTable.TablePid, layoutName);
+				var outputId = TagUtils.GetIdFromName(tagMcsElement, TAGMCSIds.OutputConfigTable.TablePid, layoutName);
 
 				var getOutputConfig = new GetOutputConfigRequest(outputId, MessageIdentifier.ID);
 				var outputConfigResponse = tagMcs.SendMessage(getOutputConfig, TimeSpan.FromSeconds(30)) as GetOutputConfigResponse;
@@ -269,9 +265,9 @@
 			}
 		}
 
-		private void CreateScheduledTask(IDmsElement tag, string channelId, string channelName)
+		private void CreateScheduledTask(IDmsElement tag, string channelId, string connectionName)
 		{
-			var scriptName = "Cleanup TAG Audio Task";
+			var scriptName = "Cleanup TAG Audio Task_blake";
 
 			var scheduler = dms.GetAgent(tag.AgentId).Scheduler;
 
@@ -301,7 +297,7 @@
 				{
 					new[]
 					{
-						channelName,
+						connectionName,
 						string.Empty,
 						string.Empty,
 						startTime,
@@ -331,10 +327,14 @@
 			scheduler.CreateTask(task);
 		}
 
-		private void UpdateLayout(TagMCS interAppTagMcs, int position, GetLayoutConfigResponse layoutResponse, string channelId, StringBuilder errorBuilder, string newChannelName)
+		private void UpdateLayout(IDmsElement tagMcsElement, TagMCS tagMcs, string layoutName, int position, string channelId, StringBuilder errorBuilder, string umdUpdate)
 		{
 			try
 			{
+				string layoutId = TagUtils.GetIdFromName(tagMcsElement, TAGMCSIds.LayoutTable.TablePid, layoutName);
+				var getLayoutRequest = new GetLayoutConfigRequest(layoutId, MessageIdentifier.ID);
+				var layoutResponse = tagMcs.SendMessage(getLayoutRequest, TimeSpan.FromSeconds(30)) as GetLayoutConfigResponse;
+
 				var matchingIndex = layoutResponse.Layout.Tiles.FindIndex(x => x.Index == position);
 
 				if (matchingIndex != -1)
@@ -345,11 +345,11 @@
 				layoutResponse.Layout.LayoutType = "TAG QC";
 				if (layoutResponse.Layout.Tiles[0].Umd == null)
 				{
-					layoutResponse.Layout.Tiles[0].Umd = new List<string> { newChannelName };
+					layoutResponse.Layout.Tiles[0].Umd = new List<string> { umdUpdate };
 				}
 				else
 				{
-					layoutResponse.Layout.Tiles[0].Umd[0] = newChannelName;
+					layoutResponse.Layout.Tiles[0].Umd[0] = umdUpdate;
 				}
 
 				var setMessage = new SetLayoutConfigRequest
@@ -357,7 +357,7 @@
 					Layout = layoutResponse.Layout,
 				};
 
-				var setResponse = interAppTagMcs.SendMessage(setMessage, TimeSpan.FromMinutes(2)) as InterAppResponse;
+				var setResponse = tagMcs.SendMessage(setMessage, TimeSpan.FromMinutes(2)) as InterAppResponse;
 
 				if (!setResponse.Success)
 				{
@@ -368,7 +368,7 @@
 				Thread.Sleep(2000);
 
 				var channelUpdateMessage = new SetChannelInLayoutRequest(layoutResponse.Layout.Uuid, channelId, 1, MessageIdentifier.ID);
-				var channelLayoutResponse = interAppTagMcs.SendMessage(channelUpdateMessage, TimeSpan.FromMinutes(2)) as InterAppResponse;
+				var channelLayoutResponse = tagMcs.SendMessage(channelUpdateMessage, TimeSpan.FromMinutes(2)) as InterAppResponse;
 
 				if (!channelLayoutResponse.Success)
 				{

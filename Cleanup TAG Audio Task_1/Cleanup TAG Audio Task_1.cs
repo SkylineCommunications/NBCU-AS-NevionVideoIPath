@@ -52,15 +52,14 @@ dd/mm/2025	1.0.0.1		XXX, Skyline	Initial version
 namespace Cleanup_TAG_Audio_Task_1
 {
 	using System;
-	using System.Collections.Generic;
-	using System.Globalization;
-	using System.Text;
+
 	using NevionCommon_1;
+
 	using NevionSharedUtils;
+
 	using Skyline.DataMiner.Automation;
 	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS;
-	using Skyline.DataMiner.ConnectorAPI.TAGVideoSystems.MCS.InterApp.Messages;
-	using Skyline.DataMiner.Net.Messages.SLDataGateway;
+	using Skyline.DataMiner.Core.DataMinerSystem.Automation;
 
 	/// <summary>
 	/// Represents a DataMiner Automation script.
@@ -129,32 +128,11 @@ namespace Cleanup_TAG_Audio_Task_1
 			var outputName = Utils.RemoveBracketPrefix(channelName);
 
 			var tagMcs = new TagMCS(engine.GetUserConnection(), tagElement.DmaId, tagElement.ElementId);
-			Utils.ResetAudio(engine, tagMcs, tagElement.FindPrimaryKey(TAGMCSIds.OutputConfigTable.TablePid, outputName));
+			TagUtils.ResetAudio(engine, tagMcs, tagElement.FindPrimaryKey(TAGMCSIds.OutputConfigTable.TablePid, outputName));
 
-			var response = tagMcs.SendMessage(new GetChannelConfigRequest(channelId, MessageIdentifier.ID), TimeSpan.FromSeconds(30));
-			var channelConfigResponse = response as GetChannelConfigResponse;
-			if (channelConfigResponse == null)
-			{
-				var interappResponse = response as InterAppResponse;
-				engine.Log($"Get Channel Message returned failure: {interappResponse.ResponseMessage}");
-				return;
-			}
-
-			var channelConfig = channelConfigResponse.Channel;
-			channelConfig.Label = channelName;
-
-			var request = new SetChannelConfigRequest { Channel = channelConfig };
-			var setResponse = tagMcs.SendMessage(request, TimeSpan.FromSeconds(30)) as InterAppResponse;
-			if (setResponse == null)
-			{
-				engine.Log("No response on Set Channel received");
-				return;
-			}
-
-			if (!setResponse.Success)
-			{
-				engine.Log($"Set Channel Message returned failure: {setResponse.ResponseMessage}");
-			}
+			var dms = engine.GetDms();
+			var idmsTag = dms.GetElement(tagElement.ElementName);
+			TagUtils.ClearLayoutUmd(engine, idmsTag, tagMcs, outputName);
 		}
 	}
 }
