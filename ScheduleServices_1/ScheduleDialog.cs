@@ -267,7 +267,7 @@
 
 		private void CreateScheduledTask(IDmsElement tag, string channelId, string connectionName)
 		{
-			var scriptName = "Cleanup TAG Audio Task_blake";
+			var scriptName = "Cleanup TAG Audio Task";
 
 			var scheduler = dms.GetAgent(tag.AgentId).Scheduler;
 
