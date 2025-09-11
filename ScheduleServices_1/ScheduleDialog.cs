@@ -73,11 +73,14 @@
 		private string[] primaryKeysCurrentServices = new string[0];
 		private bool skipVIPConnection;
 		private List<ProfileComponent> components;
+		private double timeOutMinutes;
 
 		public ScheduleDialog(IEngine engine) : base(engine)
 		{
 			Title = "Connect Services";
 			dms = engine.GetDms();
+			timeOutMinutes = engine.Timeout.TotalMinutes;
+			TimeOut = Utils.TimeOut(timeOutMinutes);
 			loggingHelper = new LoggingHelper(engine);
 
 			existingConnections = new Dictionary<string, string>();
@@ -103,8 +106,14 @@
 			startRadioButtonList.Changed += (s, o) => HandleStartOptionChanged();
 			endRadioButtonList.Changed += (s, o) => HandleEndOptionChanged();
 
+			var cts = new CancellationTokenSource();
+			Utils.TimeOutCounter(cts.Token, timeOutMinutes, TimeOut, this);
+
 			ConnectButton.Pressed += (s, o) =>
 			{
+				cts.Cancel();
+				cts.Dispose();
+
 				var endTime = End.HasValue
 					? Convert.ToString(End.Value.ToOADate(), CultureInfo.InvariantCulture)
 					: String.Empty;
@@ -132,6 +141,12 @@
 
 				// Block until both are finished
 				Task.WaitAll(nevionConnection, tagConnection);
+			};
+
+			ConnectButton.Pressed += (s, o) =>
+			{
+				cts.Cancel();
+				cts.Dispose();
 			};
 
 			GenerateUI();
@@ -478,6 +493,8 @@
 			}
 		}
 
+		public Label TimeOut { get; private set; }
+
 		public Button ConnectButton { get; private set; } = new Button("Connect") { Style = ButtonStyle.CallToAction, Width = 120 };
 
 		public Button CancelButton { get; private set; } = new Button("Cancel") { Width = 120 };
@@ -653,6 +670,8 @@
 
 			AddWidget(CancelButton, ++row, 0);
 			AddWidget(ConnectButton, row, 1, HorizontalAlignment.Right);
+
+			AddWidget(TimeOut, ++row, 0, 1, 2);
 		}
 
 		private void CheckCurrentSourcesAndDestinations(IEnumerable<object[]> connectionsTableData)

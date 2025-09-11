@@ -54,8 +54,11 @@ namespace ScheduleServices_1
 	using System;
 	using System.Collections.Generic;
 	using System.Linq;
+
 	using Newtonsoft.Json;
+
 	using Skyline.DataMiner.Automation;
+	using Skyline.DataMiner.Net.Exceptions;
 	using Skyline.DataMiner.Utils.InteractiveAutomationScript;
 
 	/// <summary>
@@ -122,7 +125,15 @@ namespace ScheduleServices_1
 				var controller = new InteractiveController(engine);
 				controller.ShowDialog(scheduleDialog);
 			}
+			catch (ScriptTimeoutException)
+			{
+				// do nothing
+			}
 			catch (ScriptAbortException)
+			{
+				// do nothing
+			}
+			catch (DataMinerException)
 			{
 				// do nothing
 			}
